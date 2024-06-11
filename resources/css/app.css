@@ -1,0 +1,43 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+
+@keyframes slideFromBottom {
+    0% {
+        transform: translateY(100%);
+        opacity: 0;
+    }
+
+    100% {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.slide-from-bottom {
+    animation: slideFromBottom 0.5s ease-out;
+}
+
+.placeholder-container {
+    position: absolute;
+    left: 0;
+    align-items: center;
+    padding-left: 1rem;
+    pointer-events: none;
+    z-index: 20;
+    overflow: hidden;
+    width: 100%;
+    top: 20px;
+    height: 25px;
+}
+
+.placeholder {
+    position: relative;
+    display: block;
+    width: 50%;
+}
+
+.swiper-slide.swiper-slide-active {
+    margin-left: 0px !important;
+}
