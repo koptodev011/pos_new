@@ -112,6 +112,7 @@ Route::middleware('auth:sanctum')->prefix('/orders')->group(function () {
     Route::get('/{order}/waiterTip', [PaymentController::class, 'waiterTip']);
     Route::get('/{order}/applycoupon', [PaymentController::class, 'applyCoupon']);
     Route::get('/{order}/customTip', [PaymentController::class, 'CustomTip']);
+    Route::get('/{order}/render', [PaymentController::class, 'render']);
 });
 
 

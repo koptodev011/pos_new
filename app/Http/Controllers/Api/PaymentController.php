@@ -10,7 +10,7 @@ use App\Models\Order;
 use App\Enums\OrderStatus;
 use Illuminate\Http\Resources\Json\JsonResource;
 use Illuminate\Validation\Rule;
-
+use Illuminate\Support\Facades\Auth;
 
 
 class PaymentController extends Controller
@@ -36,7 +36,7 @@ class PaymentController extends Controller
             'option' => 'required', // Add more validation rules if necessary
         ]);
         $option = $request->input('option');
-       echo $option;
+      
      
         if ($this->selectedOption == $option) {
             $this->selectedOption = 0;
@@ -52,7 +52,7 @@ class PaymentController extends Controller
        
        
         $summary = [
-            'total' => $orderDataArray['total'],
+            'total' => $orderDataArray['total']+$option,
             'sub_total' => $orderDataArray['sub_total'],
             'tax' => [
                 'text' => 'Taxes',
@@ -75,7 +75,11 @@ class PaymentController extends Controller
       
         $order->update([
             'summary' => $summary
+        ]);
 
+        return response()->json([
+            'success' => true,
+            'message' => 'Tip applied successfully',
         ]);
         
     }
@@ -86,7 +90,7 @@ class PaymentController extends Controller
             'option' => 'required', // Add more validation rules if necessary
         ]);
         $option = $request->input('option');
-        $this->selectOption($request, $order);
+        $this->waiterTip($request, $order);
     }
     
     
@@ -132,6 +136,114 @@ class PaymentController extends Controller
         }
     }
 
+    // public function render(Request $request,Order $order)
+    // {
+
+        // $request->validate([
+        //     'tenant_unit_id' => 'required'
+        // ]);
+        
+        // $tenantUnitId = $request->input('tenant_unit_id');
+        
+        // $cartHelper = new \App\Helpers\CartHelper();
+        // $tenantUnit = $cartHelper->tenantUnit();
+        // $currency = $tenantUnit->country->getCurrency();
+
+
+
+        // $orderHelper = new \App\Helpers\OrderHelper();
+
+        // $orderData=$orderHelper->orderSummary();
+        // // echo $orderData;
+        // print_r($orderData);
+
+        // $order->load(['floorTable', 'orderItems.orderable.media', 'orderPayments', 'orderHistories']);
+        // return JsonResource::make($order);
+        
+       
+        // if($orderData){
+        //     if($orderData['summary']['promo']['value'] !=0){
+        //         $this->couponApplied = true;
+        //         $this->couponCode = strtoupper($orderData['summary']['promo']['text']);
+        //     }
+        //     $paid_amount = OrderPayment::where('order_id',$orderData['orderData']->id)->sum('amount');
+         
+        //     $guestPayments= OrderPayment::where('order_id',$orderData['orderData']->id)->get();
+        //     if(session()->has('client_key')){
+        //         if(count($guestPayments)>0){
+        //             $this->selectedTab = 'splitPayment';
+        //         }
+        //     }elseif($orderData['orderData']['meta']['type'] == 'splitPayment'){
+        //         $this->selectedTab = 'splitPayment';
+        //     }else{
+        //         $this->selectedTab = 'singlePayment';
+        //     }
+           
+        //     $this->selectedOption = $orderData['summary']['tip']['value'];
+        //     return view('livewire.payment',[
+        //         'currency' => $currency,
+        //         'orderData' => $orderData,
+        //         'guestPayments' => $guestPayments,
+        //         'paid_amount' => $paid_amount,
+        //     ]);
+        // }else{
+        //     return view('livewire.payment',[
+        //         'currency' => $currency,
+        //         'orderData' => $orderData
+        //     ]);
+        // }
+        
+      
+      
+    // }
+
+
+
+    public function render()
+    {
+        if(auth()->user()) {
+            $menus = Order::with('orderItems.orderable.media')
+                ->where('user_id', auth()->user()->id)
+                ->where('status', 'Placed')
+                ->orWhere('status', 'Preparing')
+                ->orWhere('status', 'Ready')
+                ->first();
+        } else {
+            $cartHelper = new CartHelper();
+            $cart = $cartHelper->sessionCart();
+            $menus = Order::with('orderItems.orderable.media')
+                ->where('floor_table_id', $cart->floor_table_id)
+                ->where('tenant_unit_id', $cart->floorTable->tenant_unit_id)
+                ->where('status', 'Placed')
+                ->orWhere('status', 'Preparing')
+                ->orWhere('status', 'Ready')
+                ->first(); 
+        }
+       
+        $sub_total = 0;
+        $total = 0;
+        $paid_amount = 0;
+
+        if($menus) {
+            $paid_amount = $menus->orderPayments()->sum('amount');
+            foreach ($menus->orderItems as $order_item) {
+                $sub_total += $order_item->quantity * $order_item->orderable->applied_price;
+                }
+                
+                $sub_total = round($sub_total, 2);
+                $tax = round($sub_total * 0.05, 2);
+                $discount = 0;
+                $promo = 0;
+                
+                $total = round(($sub_total + $tax) - ($discount + $promo), 2) - $paid_amount;
+                dd($total);
+        }
+
+        return response()->json([
+            'menus' => $menus,
+            'total' => $total,
+        ]);
+    }
 
 
     

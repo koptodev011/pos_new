@@ -121,6 +121,8 @@ class Payment extends Component
         ]);
     }
 
+    
+
     // Method to toggle the modal visibility
     public function toggleModal()
     {
