@@ -80,19 +80,14 @@ class AppAuthController extends Controller
 
     public function forgotPassword(Request $request)
     {
-
-        $validator = Validator::make($request->all(), [
+        $attributes = $request->validate([
             'email' => ['required', 'email', 'max:255', Rule::exists('users', 'email')],
         ]);
-
-        if ($validator->fails()) {
-            return response()->json(['error' => $validator->errors(),'StatusCode' => 404], 404);
-        }
-
         $user = User::where('email', $attributes['email'])->first();
-      
-            $tokenCode = TokenCodeHelper::newCode();
-            $passwordReset = PasswordReset::where('email', $attributes['email'])->first();
+    
+        $tokenCode = TokenCodeHelper::newCode();
+
+        $passwordReset = PasswordReset::where('email', $attributes['email'])->first();
         
         if ($passwordReset != null) {
             $passwordReset->update([
@@ -108,13 +103,10 @@ class AppAuthController extends Controller
         Mail::to($user)->send(new ForgotPasswordRequested($passwordReset));
         
         return new JsonResource([
-            'message' => 'A code has been sent to your email address',
-            'StatusCode' => 200
+            'message' => 'A code has been sent to your email address'
         ]);
-            
-        
-     
     }
+
 
 
 
