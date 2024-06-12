@@ -21,7 +21,7 @@ class AppAuthController extends Controller
         $validator = Validator::make($request->all(), [
             'name' => 'required',
             'email' => 'required|email|unique:users',
-            'phone' => 'nullable',
+            'phone' => 'nullable|numeric|max:10',
             'password' => 'required|confirmed',
             'profile_photo' => 'nullable|image|mimes:jpeg,png,jpg,gif',
         ]);
