@@ -43,18 +43,19 @@ class ProfileController extends Controller
         $user = Auth::user();
     
         if (!$user) {
-            return response()->json(['error' => 'Unauthorized'], 401);
+            return response()->json(['error' => 'Unauthorized' , 'Statuc code'=>401], 401);
         }
     
         $validator = Validator::make($request->all(), [
             'name' => 'string|max:255',
-            'email' => 'email|unique:users,email,' . $user->id,
-            'phone' => 'nullable|string|max:20',
+            'email' => 'email|unique:users,email,'.$user->id,
+            'phone' => 'nullable|string|max:10',
             'profile_photo' => 'nullable|image|mimes:jpeg,png,jpg,gif',
         ]);
+        
     
         if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 422);
+            return response()->json(['errors' => $validator->errors(),'Statuc code'=>400], 400);
         }
     
         if ($request->hasFile('profile_photo_path')) {
@@ -73,8 +74,19 @@ class ProfileController extends Controller
         // Save updated user data
         $user->save();
     
+        // Generate profile photo URL
+        $profilePhotoUrl = $user->profile_photo_path ? asset($user->profile_photo_path) : null;
+    
         // Sending success response
-        return response()->json(['message' => 'User details updated successfully', 'user' => $user]);
-        
+        return response()->json([
+            'message' => 'User details updated successfully',
+            'user' => [
+                'name' => $user->name,
+                'email' => $user->email,
+                'phone' => $user->phone,
+                'profile_photo_url' => $profilePhotoUrl,
+            ],
+        ]);
     }
+    
     }
