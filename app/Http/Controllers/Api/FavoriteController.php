@@ -18,31 +18,43 @@ class FavoriteController extends Controller
             $menus = Favourite::with(['menu'=>function($query){
                 $query->select('id','name','price','priority');
             },
-            'menu.media'])->where('user_id', $user->id)->get();
+            'menu.media'])->where('user_id', $user->id)->toSql();
             return response()->json($menus);
         } else {
             return response()->json([], 200);
         }
     }
 
-    public function addFavorite($menuID)
+   
+
+
+
+
+
+
+    public function addFavorite(Request $request)
     {
-        $helper = new MenuHelper();    
+        $request->validate([
+            'menuID' => 'required|numeric|exists:menus,id',
+        ]);
+    
+        $menuID = $request->menuID;
+       
+    
+        $helper = new MenuHelper();
         
         if ($helper->addFavourite($menuID)) {
-            $responseMessage = 'Menu successfully added in Favorites!';
+            $responseMessage = 'Menu successfully added to Favorites!';
         } else {
             $responseMessage = 'Menu successfully removed from Favorites!';
         }
         
-       
         return response()->json([
             'message' => $responseMessage,
             'is_favorite' => $helper->isFavorite($menuID)
         ]);
     }
-
-
+    
 
   
 }

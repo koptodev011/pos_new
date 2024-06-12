@@ -27,13 +27,10 @@ class AppAuthController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json(['error' => $validator->errors()], 401);
+            return response()->json(['error' => $validator->errors(),'StatusCode' => 400], 400);
         }
 
         $profilePhotoPath = null;
-        
-
-        //Here we get images and hash it and pass to store to the database
         if ($request->hasFile('profile_photo_path')) {
             $profilePhoto = $request->file('profile_photo_path');
             $profilePhotoName = time() . '_' . $profilePhoto->getClientOriginalName();
@@ -55,47 +52,47 @@ class AppAuthController extends Controller
         //Here we save the data to the database
         $user->save();
         //Sending response
-        return response()->json(['message' => 'User registered successfully'], 200);
+        return response()->json(['message' => 'User registered successfully','StatusCode' => 200], 200);
     }
 
 
     public function login(Request $request)
     {
-        // dd($request);
-
         $validator = Validator::make($request->all(), [
             'email' => ['required', 'email', 'max:255'],
             'password' => ['required', 'string',], 
         ]);
 
         if ($validator->fails()) {
-            return response()->json(['error' => $validator->errors()], 401);
+            return response()->json(['error' => $validator->errors()], 400);
         }
        if($validator){
         $user = User::where('email', $request->email)->first();
         if (!$user || !Hash::check($request->password, $user->password)) {
-           return response()->json(['message' => 'Login failed.', 'success' => false, 'response' => 401], 401);
+           return response()->json(['message' => 'Login failed.', 'status' => "Failed", 'StatusCode' => 400], 400);
         } else {
-            // $token = $user->createToken('MyApp')->accessToken;
             $token = $user->createToken($user->id)->plainTextToken;
-            return response()->json(['token' => $token, 'success' => true, 'response' => 200], 200);
+            return response()->json(['token' => $token, 'status' => "Success", 'StatusCode' => 200], 200);
         } 
        }
-
-       
     }
     
 
     public function forgotPassword(Request $request)
     {
-        $attributes = $request->validate([
+
+        $validator = Validator::make($request->all(), [
             'email' => ['required', 'email', 'max:255', Rule::exists('users', 'email')],
         ]);
-        $user = User::where('email', $attributes['email'])->first();
-    
-        $tokenCode = TokenCodeHelper::newCode();
 
-        $passwordReset = PasswordReset::where('email', $attributes['email'])->first();
+        if ($validator->fails()) {
+            return response()->json(['error' => $validator->errors(),'StatusCode' => 404], 404);
+        }
+
+        $user = User::where('email', $attributes['email'])->first();
+      
+            $tokenCode = TokenCodeHelper::newCode();
+            $passwordReset = PasswordReset::where('email', $attributes['email'])->first();
         
         if ($passwordReset != null) {
             $passwordReset->update([
@@ -111,8 +108,12 @@ class AppAuthController extends Controller
         Mail::to($user)->send(new ForgotPasswordRequested($passwordReset));
         
         return new JsonResource([
-            'message' => 'A code has been sent to your email address'
+            'message' => 'A code has been sent to your email address',
+            'StatusCode' => 200
         ]);
+            
+        
+     
     }
 
 

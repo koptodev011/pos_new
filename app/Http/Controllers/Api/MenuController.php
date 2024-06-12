@@ -17,6 +17,14 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Log;
 use Livewire\Component;
 use Livewire\Attributes\On;
+
+
+use Validator;
+use App\Models\User;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
+
 class MenuController extends Controller
 {
     public function index(Request $request)
@@ -36,33 +44,42 @@ class MenuController extends Controller
 
     public function getMenuData(Request $request)
     {
-        $tenantUnitId = $request->input('tenant_unit_id');
-        session()->put($tenantUnitId);
-        session()->put('floor_table_id',1);
-        $cartHelper = new \App\Helpers\CartHelper();    
-        $tenantUnit = $cartHelper->tenantUnit();
-      
-        $categories = Category::whereHas('tenantUnits', function (Builder $query) use ($tenantUnitId) {
-            $query->where('tenant_unit_id', $tenantUnitId);
-        })->get();
-
-        $menuData = [];
-        $tags = ['Recommended', 'Hottest Offers', 'Hot Selling'];
-        foreach ($tags as $tag) {
-            $menuData[$tag] = MenuModel::withAnyTags([$tag], 'menu')->whereHas('tenantUnits', function ($query) use ($tenantUnitId) {
+        $validator = \Validator::make($request->all(), [
+            'tenant_unit_id' => 'required'
+        ]);
+        
+        if ($validator->fails()) {
+            return response()->json(['error' => $validator->errors(),"Status Code"=>400], 400);
+        }
+        else{
+            $tenantUnitId = $request->input('tenant_unit_id');
+            session()->put($tenantUnitId);
+            session()->put('floor_table_id',1);
+            $cartHelper = new \App\Helpers\CartHelper();    
+            $tenantUnit = $cartHelper->tenantUnit();
+          
+            $categories = Category::whereHas('tenantUnits', function (Builder $query) use ($tenantUnitId) {
                 $query->where('tenant_unit_id', $tenantUnitId);
             })->get();
-         
+    
+            $menuData = [];
+            $tags = ['Recommended', 'Hottest Offers', 'Hot Selling'];
+            foreach ($tags as $tag) {
+                $menuData[$tag] = MenuModel::withAnyTags([$tag], 'menu')->whereHas('tenantUnits', function ($query) use ($tenantUnitId) {
+                    $query->where('tenant_unit_id', $tenantUnitId);
+                })->get();
+             
+            }
+            $list = Menu::query()->with('menuCategories')->get()->append(['tagNames', 'images']);
+            $cart_key = session()->get('cart_key');
+          
+            $data=[];
+            $data['menus']=$menuData;
+            $data['categories']=$categories;
+            $data['allMenu']=$list;
+            $data['cart_key']=$cart_key;
+            return JsonResource::make($data);
         }
-        $list = Menu::query()->with('menuCategories')->get()->append(['tagNames', 'images']);
-        $cart_key = session()->get('cart_key');
-      
-        $data=[];
-        $data['menus']=$menuData;
-        $data['categories']=$categories;
-        $data['allMenu']=$list;
-        $data['cart_key']=$cart_key;
-        return JsonResource::make($data);
     }
 
 

@@ -11,6 +11,7 @@ use App\Enums\OrderStatus;
 use Illuminate\Http\Resources\Json\JsonResource;
 use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\Auth;
+use App\Models\OrderPayment;
 
 
 class PaymentController extends Controller
@@ -33,7 +34,7 @@ class PaymentController extends Controller
     public function waiterTip(Request $request,Order $order)
     {
         $request->validate([
-            'option' => 'required', // Add more validation rules if necessary
+            'option' => 'required',
         ]);
         $option = $request->input('option');
       
@@ -199,52 +200,94 @@ class PaymentController extends Controller
 
 
 
+    // public function render()
+    // {
+    //     if(auth()->user()) {
+    //         $menus = Order::with('orderItems.orderable.media')
+    //             ->where('user_id', auth()->user()->id)
+    //             ->where('status', 'Placed')
+    //             ->orWhere('status', 'Preparing')
+    //             ->orWhere('status', 'Ready')
+    //             ->first();
+    //     } else {
+    //         $cartHelper = new CartHelper();
+    //         $cart = $cartHelper->sessionCart();
+    //         $menus = Order::with('orderItems.orderable.media')
+    //             ->where('floor_table_id', $cart->floor_table_id)
+    //             ->where('tenant_unit_id', $cart->floorTable->tenant_unit_id)
+    //             ->where('status', 'Placed')
+    //             ->orWhere('status', 'Preparing')
+    //             ->orWhere('status', 'Ready')
+    //             ->first(); 
+    //     }
+       
+    //     $sub_total = 0;
+    //     $total = 0;
+    //     $paid_amount = 0;
+
+    //     if($menus) {
+    //         $paid_amount = $menus->orderPayments()->sum('amount');
+    //         foreach ($menus->orderItems as $order_item) {
+    //             $sub_total += $order_item->quantity * $order_item->orderable->applied_price;
+    //             }
+                
+    //             $sub_total = round($sub_total, 2);
+    //             $tax = round($sub_total * 0.05, 2);
+    //             $discount = 0;
+    //             $promo = 0;
+                
+    //             $total = round(($sub_total + $tax) - ($discount + $promo), 2) - $paid_amount;
+                
+    //     }
+
+    //     return response()->json([
+    //         'menus' => $menus,
+    //         'total' => $total,
+    //     ]);
+    // }
+
+
     public function render()
     {
-        if(auth()->user()) {
-            $menus = Order::with('orderItems.orderable.media')
-                ->where('user_id', auth()->user()->id)
-                ->where('status', 'Placed')
-                ->orWhere('status', 'Preparing')
-                ->orWhere('status', 'Ready')
-                ->first();
-        } else {
-            $cartHelper = new CartHelper();
-            $cart = $cartHelper->sessionCart();
-            $menus = Order::with('orderItems.orderable.media')
-                ->where('floor_table_id', $cart->floor_table_id)
-                ->where('tenant_unit_id', $cart->floorTable->tenant_unit_id)
-                ->where('status', 'Placed')
-                ->orWhere('status', 'Preparing')
-                ->orWhere('status', 'Ready')
-                ->first(); 
-        }
+        // $cartHelper = new \App\Helpers\CartHelper();
+        // $tenantUnit = $cartHelper->tenantUnit();
+        // $currency = $tenantUnit->country->getCurrency();
+
+        $orderHelper = new \App\Helpers\OrderHelper();
+
+        $orderData = $orderHelper->orderSummary();
+        dd($orderData);
+        $response = [];
        
-        $sub_total = 0;
-        $total = 0;
-        $paid_amount = 0;
+        if($orderData){
+            if($orderData['summary']['promo']['value'] !=0){
+                $response['couponApplied'] = true;
+                $response['couponCode'] = strtoupper($orderData['summary']['promo']['text']);
+                dd($orderData['summary']['promo']['text']);
+            }
+            $paid_amount = OrderPayment::where('order_id', $orderData['orderData']->id)->sum('amount');
+         
+            $guestPayments = OrderPayment::where('order_id', $orderData['orderData']->id)->get();
 
-        if($menus) {
-            $paid_amount = $menus->orderPayments()->sum('amount');
-            foreach ($menus->orderItems as $order_item) {
-                $sub_total += $order_item->quantity * $order_item->orderable->applied_price;
+            if(session()->has('client_key')){
+                if(count($guestPayments) > 0){
+                    $response['selectedTab'] = 'splitPayment';
                 }
-                
-                $sub_total = round($sub_total, 2);
-                $tax = round($sub_total * 0.05, 2);
-                $discount = 0;
-                $promo = 0;
-                
-                $total = round(($sub_total + $tax) - ($discount + $promo), 2) - $paid_amount;
-                dd($total);
+            }elseif($orderData['orderData']['meta']['type'] == 'splitPayment'){
+                $response['selectedTab'] = 'splitPayment';
+            }else{
+                $response['selectedTab'] = 'singlePayment';
+            }
+           
+            $response['selectedOption'] = $orderData['summary']['tip']['value'];
+            $response['currency'] = $currency;
+            $response['orderData'] = $orderData;
+            $response['guestPayments'] = $guestPayments;
+            $response['paid_amount'] = $paid_amount;
         }
 
-        return response()->json([
-            'menus' => $menus,
-            'total' => $total,
-        ]);
+        return response()->json($response);
     }
-
 
     
 }

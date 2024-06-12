@@ -6,6 +6,7 @@ use App\Enums\CartItemType;
 use App\Models\Cart;
 use App\Models\CartItem;
 use App\Enums\OrderStatus;
+use App\Enums\FloorTableStatus;
 use App\Models\FloorTable;
 use App\Models\Menu;
 use App\Models\Order;
@@ -43,23 +44,44 @@ class CartHelper
     }
 
     public function init(FloorTable $floorTable)
-    {
+    {   
+       
         if (!session()->has('cart_key')) {
             $key = md5(uniqid(rand(), true));
             $cart=Cart::Where('floor_table_id', $floorTable->id)->orderBy('id', 'desc')->first();
             if($cart){
                 $key=$cart->key;
-            }
-            else{
+                if(session()->get('qr_code') != 'true'){
+                    $cart->update([
+                        'diners' => $cart->diners + 1
+                    ]);
+                    //order if any
+                    $order = Order::where('floor_table_id', $floorTable->id)
+                            ->where('status', '<>', OrderStatus::Completed)
+                            ->first();
+                  
+                    if($order){
+                        $order->update([
+                            'diners' => $cart->diners
+                        ]);
+                    }
+                     session()->put('qr_code', 'true');
+                }
+            }else{
+                $client_key = md5(uniqid(rand(), true));
                 Cart::create([
                     'key' => $key,
-                    'floor_table_id' => $floorTable->id
+                    'floor_table_id' => $floorTable->id,
+                    'tenant_unit_id' => $floorTable->tenant_unit_id,
+                    'client_info' => $client_key
                 ]);
+                session()->put('client_key', $client_key);
+                session()->put('qr_code', 'true');
             }
 
             session()->put('cart_key', $key);
             session()->put('floor_table_id', $floorTable->id);
-        }
+        }   
     }
 
     public function tenantUnitID()
@@ -77,7 +99,7 @@ class CartHelper
     public function sessionCart()
     {
         $cart_key = session()->get('cart_key');
-      
+    
         $cart = Cart::where('key', $cart_key)->first();
         if ($cart !== null) {
             $cart->load(['cartItems.cartable']);
@@ -89,7 +111,6 @@ class CartHelper
             $this->init($floorTable);
             $cart=$this->sessionCart();
         }
-        
         return $cart;
     }
 
@@ -141,11 +162,9 @@ class CartHelper
 
     public function adjust($attributes)
     {
-       
         if (!$this->is_api_request) {
             $attributes['key'] = $this->sessionCartKey();
         }
-       
         $this->attributes = $attributes;
         $collect = collect($attributes);
 
@@ -156,6 +175,7 @@ class CartHelper
             $clauses['floor_table_id'] = $attributes['floor_table_id'];
         }
         $cart = Cart::where($clauses)->first();
+
         $type = CartItemType::from($collect->get('type'));
         $type_id = $collect->get('type_id');
 
@@ -199,7 +219,6 @@ class CartHelper
     {
         $cart->load(['cartItems.cartable.media', 'floorTable']);
         $sub_total = 0;
-      
         foreach ($cart->cartItems as $cart_item) {
             $sub_total += $cart_item->quantity * $cart_item->cartable->applied_price;
         }
@@ -264,9 +283,6 @@ class CartHelper
         return $this->cartSummary($cart);
     }
 
-
-
-
     public function userCartSummary()
     {
         $cart = Cart::where('user_id', $this->user->id)->first();
@@ -327,27 +343,61 @@ class CartHelper
 
         DB::transaction(function () use (&$cart_summary, &$order_no, &$customer, &$user) {
 
+            // $user = User::where('email', $customer->get('email'))->first();
+            // if ($user == null) {
+            //     $user = User::create([
+            //         'name' => $customer->get('name'),
+            //         'email' => $customer->get('email'),
+            //         'phone' => $customer->get('phone'),
+            //         'password' => $customer->get('password')
+            //     ]);
+            // }
+
             $summary = $cart_summary['summary'];
             $cart = Cart::find($cart_summary['cart']['id']);
             $cart->load(['cartItems.cartable', 'floorTable']);
-
-            $cart->update([
-                'user_id' => $user->id
+            if($user){
+                $cart->update([
+                    'user_id' => $user->id
+                ]);
+            }
+         
+            $floorTable = FloorTable::find($cart_summary['cart']['floor_table_id']);
+            $floorTable->update([
+                'status' => FloorTableStatus::Serving
             ]);
-
             $tenant_unit_id = $cart->floorTable->tenant_unit_id;
             $code = OrderHelper::newCode();
-            $order = Order::create([
-                'order_no' => $order_no,
-                'user_id' => $user->id,
-                'floor_table_id' => $cart->floor_table_id,
-                'diners' => $cart->diners,
-                'code' =>  $code,
-                'summary' => $summary,
-                'customer' => $customer,
-                'address' => $customer->get('address'),
-                'tenant_unit_id' => $tenant_unit_id
-            ]);
+            $meta = [
+                'type' => 'singlePayment'
+            ];
+            if($user){
+                $order = Order::create([
+                    'order_no' => $order_no,
+                    'user_id' => $user->id,
+                    'floor_table_id' => $cart->floor_table_id,
+                    'diners' => $cart->diners,
+                    'code' =>  $code,
+                    'summary' => $summary,
+                    'meta' => $meta,
+                    'customer' => $customer,
+                    'address' => $customer->get('address'),
+                    'tenant_unit_id' => $tenant_unit_id
+                ]);
+            }else{
+                $order = Order::create([
+                    'order_no' => $order_no,
+                    'floor_table_id' => $cart->floor_table_id,
+                    'diners' => $cart->diners,
+                    'code' =>  $code,
+                    'summary' => $summary,
+                    'meta' => $meta,
+                    'customer' => $customer,
+                    'address' => $customer->get('address'),
+                    'tenant_unit_id' => $tenant_unit_id
+                ]);
+            }
+            
 
 
             foreach ($cart->cartItems as $cartItem) {
@@ -374,32 +424,9 @@ class CartHelper
             'order_no' => $order_no
         ];
 
+        // if($user != null) {
+        //     Auth::loginUsingId($user->id);
+        // }
 
     }
-
-
-
-
-    public function getOrderDetails($orderId)
-{
-    $order = Order::where('order_no', $orderId)->first();
-
-    if (!$order) {
-        return response()->json(['error' => 'Order not found'], 404);
-    }
-
-    $data = [
-        'order_no' => $order->order_no,
-        'user_id' => $order->user_id,
-        'floor_table_id' => $order->floor_table_id,
-        'diners' => $order->diners,
-        'code' => $order->code,
-        'summary' => $order->summary,
-        'customer' => $order->customer, // Assuming customer is stored as JSON in the database
-        'address' => $order->address,
-        'tenant_unit_id' => $order->tenant_unit_id
-    ];
-
-    return response()->json($data);
-}
 }
