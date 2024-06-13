@@ -114,6 +114,7 @@ class OrderController extends Controller
 
     public function placeOrder(Request $request)
     {
+        
         $attributes = $request->validate([
             'key' => ['required', Rule::exists('carts', 'key')],
             'floor_table_id' => ['required', Rule::exists('floor_tables', 'id')],
@@ -123,25 +124,25 @@ class OrderController extends Controller
             'customer.email' => ['nullable', 'email'],
             'customer.phone' => ['nullable', 'min:4']
         ]);
+
         $cart_helper = new CartHelper($request);
         $summary = $cart_helper->summary($attributes);
-       
     
         if (!$cart_helper->isCartValid($attributes)) {
             return response()->json([
                 'message' => 'Cart is empty or Floor Table is not set'
             ], 400);
-        }
-    
+        }    
         $collect = collect($attributes);
+
     
         $result = $cart_helper->moveToOrder($attributes, $collect->get('customer', []));
-        
+       
     
         return response()->json([
             'data' => $result,
-            'message' => 'Order Placed', // Add comma here
-            'summary' => $summary // Corrected key-value pair
+            'message' => 'Order Placed',
+            'summary' => $summary 
         ]);
     }
     

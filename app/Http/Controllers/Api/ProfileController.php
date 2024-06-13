@@ -47,11 +47,12 @@ class ProfileController extends Controller
         }
     
         $validator = Validator::make($request->all(), [
-            'name' => 'string|max:255',
-            'email' => 'email|unique:users,email,'.$user->id,
-            'phone' => 'nullable|string|max:10',
-            'profile_photo' => 'nullable|image|mimes:jpeg,png,jpg,gif',
+           'name' => 'required|string|max:255|regex:/^[^\d]+$/',
+            'email' => 'required|email|unique:users,email,'.$user->id,
+           'phone' => 'nullable|numeric|digits_between:7,10',
+            'profile_photo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
         ]);
+        
         
     
         if ($validator->fails()) {

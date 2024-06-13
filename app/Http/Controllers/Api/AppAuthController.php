@@ -17,14 +17,20 @@ use Illuminate\Support\Facades\Mail;
 class AppAuthController extends Controller
 {
     public function register(Request $request)
-    {
+    { 
+        $roleName =  $request->input('role');
+       
+
         $validator = Validator::make($request->all(), [
-            'name' => 'required',
+            'name' =>'required|string|regex:/^[a-zA-Z\s]+$/',
             'email' => 'required|email|unique:users',
-            'phone' => 'nullable|numeric|max:10',
+           'phone' => 'nullable|numeric|digits_between:7,10',
             'password' => 'required|confirmed',
+            'role' =>'required|string|regex:/^[a-zA-Z\s]+$/',
             'profile_photo' => 'nullable|image|mimes:jpeg,png,jpg,gif',
+            
         ]);
+       
 
         if ($validator->fails()) {
             return response()->json(['error' => $validator->errors(),'StatusCode' => 400], 400);
@@ -37,7 +43,6 @@ class AppAuthController extends Controller
             $profilePhoto->move(public_path('profile_photos'), $profilePhotoName);
             $profilePhotoPath = 'profile_photos/' . $profilePhotoName;
         }
-
         $hashedPassword = Hash::make($request->password);
         
         // Create a new user instance
@@ -47,11 +52,14 @@ class AppAuthController extends Controller
             'phone' => $request->phone,
             'password' => $hashedPassword,
             'profile_photo_path' => $profilePhotoPath,
+            
         ]);
 
-        //Here we save the data to the database
+        $user->assignRole($roleName);
+       
+     
         $user->save();
-        //Sending response
+        
         return response()->json(['message' => 'User registered successfully','StatusCode' => 200], 200);
     }
 

@@ -64,6 +64,8 @@ Route::post('/changePassword',[Api\AppAuthController::class,'changePassword']);
 
 
 //Home page APIS
+
+
 Route::get('/homePage',[Api\MenuController::class,'getMenuData']);
 Route::get('/categories',[Api\MenuController::class,'getCategoriesData']);
 Route::get('/mean',[Api\MenuController::class,'index1']);
@@ -86,10 +88,8 @@ Route::middleware('auth:sanctum')->prefix('customer')->group(function () {
     Route::post('/update', [ProfileController::class, 'update']); 
     Route::get('/orderHistory',[OrderHistory::class,'orderHistory']);
     Route::post('/send-ebill/{id}', [OrderHistory::class,'sendEBill']);
-    Route::post('/AddToCart',[CartController::class,'AddToCart']);
-
 });
-
+Route::post('/AddToCart',[CartController::class,'AddToCart']);
 
 //Cart Section Routes
 Route::middleware('auth:sanctum')->prefix('customer')->group(function () {

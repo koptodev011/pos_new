@@ -98,7 +98,6 @@ class PaymentController extends Controller
 
     public function show(Request $request, Order $order)
     {
-        echo "fun";
         $order->load(['floorTable', 'orderItems.orderable.media', 'orderPayments', 'orderHistories']);
         return JsonResource::make($order);
         
@@ -107,32 +106,28 @@ class PaymentController extends Controller
 
     public function applyCoupon(Request $request,Order $order)
     {
-        
         $request->validate([
-            'coupan_code' => 'required', // Add more validation rules if necessary
-            'tenant_unit_id' => 'required'
+            'coupan_code' => 'required',
+            'tenant_unit_id' => 'required|numeric'
         ]);
         
         // Retrieve the input data
         $userCouponCode = strtolower($request->input('coupan_code'));
         
         $tenantUnitId = $request->input('tenant_unit_id');
-        
-      
        // Apply the coupon
         $orderHelper = new OrderHelper();
-        $orderDetail = $orderHelper->ApiapplyCoupon($userCouponCode, $tenantUnitId,$order);
+        $orderDetail = $orderHelper->ApiapplyCoupon($userCouponCode,$tenantUnitId,$order);
         if ($orderDetail['error'] == true) {
             return response()->json([
-                'success' => false,
-                'message' => $orderDetail['message']
+                'message' => $orderDetail['message'],
+                'Status Code'=>400
             ]);
         } else {
             // Assume the coupon is valid and applied
             return response()->json([
-                'success' => true,
                 'message' => 'Coupon applied successfully',
-                'order' => $orderDetail
+                'Status Code'=>200
             ]);
         }
     }

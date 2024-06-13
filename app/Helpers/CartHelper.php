@@ -162,26 +162,49 @@ class CartHelper
 
     public function adjust($attributes)
     {
+       
         if (!$this->is_api_request) {
             $attributes['key'] = $this->sessionCartKey();
         }
+        
         $this->attributes = $attributes;
+        
         $collect = collect($attributes);
-
+       
+    
         $clauses = [
             'key' => $attributes['key']
         ];
+        
         if(collect($attributes)->has('floor_table_id')) {
             $clauses['floor_table_id'] = $attributes['floor_table_id'];
         }
-        $cart = Cart::where($clauses)->first();
 
+
+       
+        $cart = Cart::where($clauses)->first();
+       
+        // SELECT * FROM cart_item_types WHERE type_column = <value_from_collect>;
+      
         $type = CartItemType::from($collect->get('type'));
+
         $type_id = $collect->get('type_id');
+
+        // SELECT * FROM cart_items
+        // WHERE cart_id = <cart_id_value>
+        // AND EXISTS (
+        //     SELECT 1 FROM cartable_table
+        //     WHERE cartable_id = cart_items.cartable_id
+        //     AND cartable_type = '<type_model_class>'
+      //     AND id = <type_id_value>
+        // )
+        // LIMIT 1
+
 
         $cart_item = $cart->cartItems()->whereHasMorph('cartable', [$type->modelClass()], function ($query) use ($type_id) {
             $query->where('id', $type_id);
         })->first();
+     
 
         $quantity = $collect->get('quantity');
         if ($cart_item == null) {
@@ -192,11 +215,14 @@ class CartHelper
             ]);
         }
 
+       
+
         $method = $collect->get('method', 'set');
         if ($method == 'add') {
             $cart_item->increment('quantity', $quantity);
         }
 
+      
         if ($method == 'substract') {
             $cart_quantity = $cart_item->quantity;
             if ($cart_quantity - $quantity <= 0) {
@@ -211,24 +237,27 @@ class CartHelper
                 'quantity' => $quantity
             ]);
         }
-
+      
         return $this->cartSummary($cart);
     }
 
     public function cartSummary(Cart $cart)
     {
+        
         $cart->load(['cartItems.cartable.media', 'floorTable']);
+    
         $sub_total = 0;
         foreach ($cart->cartItems as $cart_item) {
             $sub_total += $cart_item->quantity * $cart_item->cartable->applied_price;
         }
+      
         $sub_total = round($sub_total, 2);
         $tax = round($sub_total * 0.05, 2);
         $discount = 0;
         $promo = 0;
 
         $total = round(($sub_total + $tax) - ($discount + $promo), 2);
-
+       
         return [
             'cart' => $cart,
             'summary' => [
@@ -266,7 +295,6 @@ class CartHelper
 
     public function summary($attributes)
     {
-
         if (!$this->is_api_request) {
             $attributes['key'] = $this->sessionCartKey();
         }
@@ -275,11 +303,13 @@ class CartHelper
         $clauses = [
             'key' => $attributes['key']
         ];
+       
         if(collect($attributes)->has('floor_table_id')) {
             $clauses['floor_table_id'] = $attributes['floor_table_id'];
         }
         $cart = Cart::where($clauses)->first();
         // $cart = Cart::where('key', $this->attributes['key'])->first();
+        
         return $this->cartSummary($cart);
     }
 
@@ -333,14 +363,15 @@ class CartHelper
 
     public function moveToOrder($cart_info = [], $customer_info = [])
     {
-
+      
         $cart_summary = $this->summary($cart_info);
+       
         $order_no = OrderHelper::nextOrderNo();
-
+        
         $customer = collect($customer_info);
-
+       
         $user = $this->getUser();
-
+       
         DB::transaction(function () use (&$cart_summary, &$order_no, &$customer, &$user) {
 
             // $user = User::where('email', $customer->get('email'))->first();
@@ -354,23 +385,33 @@ class CartHelper
             // }
 
             $summary = $cart_summary['summary'];
+          
             $cart = Cart::find($cart_summary['cart']['id']);
+            
             $cart->load(['cartItems.cartable', 'floorTable']);
+
+            
+
             if($user){
                 $cart->update([
                     'user_id' => $user->id
                 ]);
             }
+
+         
          
             $floorTable = FloorTable::find($cart_summary['cart']['floor_table_id']);
+           
             $floorTable->update([
                 'status' => FloorTableStatus::Serving
             ]);
             $tenant_unit_id = $cart->floorTable->tenant_unit_id;
+          
             $code = OrderHelper::newCode();
             $meta = [
                 'type' => 'singlePayment'
             ];
+           
             if($user){
                 $order = Order::create([
                     'order_no' => $order_no,
@@ -398,7 +439,7 @@ class CartHelper
                 ]);
             }
             
-
+          
 
             foreach ($cart->cartItems as $cartItem) {
                 $order->orderItems()->create([
@@ -409,7 +450,7 @@ class CartHelper
                     'tenant_unit_id' => $tenant_unit_id
                 ]);
             }
-
+          
             $order->orderHistories()->create([
                 'title' => 'Order Placed',
                 'subtitle' => null,
@@ -418,7 +459,10 @@ class CartHelper
             ]);
 
             $this->resetCart($cart);
+            
         });
+
+      
 
         return [
             'order_no' => $order_no
