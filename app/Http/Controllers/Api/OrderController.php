@@ -55,8 +55,21 @@ class OrderController extends Controller
 
     public function show(Request $request, Order $order)
     {
-        $order->load(['floorTable', 'orderItems.orderable.media', 'orderPayments', 'orderHistories']);
-        return JsonResource::make($order);
+        $validator = \Validator::make($request->all(), [
+            'floor_table_id' => 'required|numeric|exists:tenant_units,id'
+       ]);
+       
+       if ($validator->fails()) {
+           return response()->json(['error' => $validator->errors(),"Status Code"=>400], 400);
+       }
+        $orders = Order::with(['floorTable', 'orderItems.orderable.media', 'orderPayments', 'orderHistories'])
+            ->where('floor_table_id', $request->floor_table_id)
+            ->where('status', '<>','Completed')
+            ->orderBy('id','DESC')
+            ->first();
+
+           
+        return JsonResource::make($orders);
     }
 
     public function addPayment(Request $request, Order $order)
@@ -114,18 +127,7 @@ class OrderController extends Controller
 
     public function placeOrder(Request $request)
     {
-        
-        // $attributes = $request->validate([
-        //     'key' => ['required', Rule::exists('carts', 'key')],
-        //     'floor_table_id' => ['required', Rule::exists('floor_tables', 'id')],
-        //     'address' => ['nullable', 'array', 'min:1'],
-        //     'customer' => ['nullable', 'array', 'min:1'],
-        //     'customer.name' => ['nullable', 'min:1'],
-        //     'customer.email' => ['nullable', 'email'],
-        //     'customer.phone' => ['nullable', 'min:4']
-        // ]);
-
-        $validator = Validator::make($request->all(), [
+     $validator = Validator::make($request->all(), [
     'key' => ['required', Rule::exists('carts', 'key')],
     'floor_table_id' => ['required', Rule::exists('floor_tables', 'id')],
     'address' => ['nullable', 'array', 'min:1'],
@@ -136,9 +138,6 @@ class OrderController extends Controller
 ]);
 
 if ($validator->fails()) {
-    // Validation fails
-    // You can return validation errors or handle them as per your application logic
-    // For example:
     return response()->json(['errors' => $validator->errors()], 422);
 }
 $attributes = $validator->validated();

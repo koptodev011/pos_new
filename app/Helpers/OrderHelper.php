@@ -168,7 +168,6 @@ class OrderHelper
         $orderData = $order['summary'];
         $id=$order['id'];
         
-       
         $total=$orderData['total'];
         $discount = 0;
         $coupon = PromoCode::whereHas('tenantUnits', function (Builder $query) use ($tenantUnitID) {

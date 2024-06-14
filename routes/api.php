@@ -78,8 +78,8 @@ Route::middleware('auth:sanctum')->prefix('customer')->group(function () {
     Route::post('/addfavorite/{menuID}', [FavoriteController::class, 'addFavorite']);
 });
 
-//Cart API
 
+//Profile Apis
 Route::middleware('auth:sanctum')->prefix('customer')->group(function () {
     Route::get('/profileData', [ProfileController::class, 'ProfileData']);
     Route::post('/update', [ProfileController::class, 'update']); 
@@ -105,12 +105,17 @@ Route::middleware('auth:sanctum')->prefix('customer')->group(function () {
 
 
 Route::middleware('auth:sanctum')->prefix('/orders')->group(function () {
-    Route::get('/{order}/show', [PaymentController::class, 'show']);
+    // Route::get('/{order}/show', [PaymentController::class, 'show']);
     Route::get('/{order}/waiterTip', [PaymentController::class, 'waiterTip']);
     Route::get('/{order}/applycoupon', [PaymentController::class, 'applyCoupon']);
     Route::get('/{order}/customTip', [PaymentController::class, 'CustomTip']);
     Route::get('/{order}/render', [PaymentController::class, 'render']);
+    
 });
+Route::post('/waiterTip', [PaymentController::class, 'waiterTip']);
+Route::get('/show', [Api\OrderController::class, 'show']);
+
+
 
 
 
