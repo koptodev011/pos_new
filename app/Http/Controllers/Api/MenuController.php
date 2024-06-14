@@ -45,7 +45,7 @@ class MenuController extends Controller
     public function getMenuData(Request $request)
     {
         $validator = \Validator::make($request->all(), [
-            'tenant_unit_id' => 'required'
+             'tenant_unit_id' => 'required|numeric|exists:tenant_units,id'
         ]);
         
         if ($validator->fails()) {

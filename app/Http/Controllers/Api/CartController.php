@@ -84,40 +84,38 @@ class CartController extends Controller
             'type' => ['required', Rule::enum(CartItemType::class)]
         ]);
         if ($type_validator->fails()) {
-            return response([
-                'errors' => "Type is Not Found"
+            return response()->json([
+                'errors' => $type_validator->errors()->first('type'),
+                'status code'=>400
             ], 400);
         }
-
-     
-
         $type_validated = $type_validator->validated();
-    
-      
         $type = CartItemType::from($type_validated['type']);
       
   
-try {
-    $rules = [
-        'key' => ['required', Rule::exists('carts', 'key')],
-        'quantity' => ['required', 'min:1'],
-        'method' => ['required', 'string', Rule::in(['set', 'add', 'subtract'])],
-        'type_id' => ['required', Rule::exists($type->tbl(), 'id')],
-        'floor_table_id' => ['required', Rule::exists('floor_tables', 'id')]
-    ];
-
-    $attributes = $request->validate($rules);
-} catch (ValidationException $e) {
-    foreach ($e->errors() as $field => $errors) {
-        foreach ($errors as $error) {
-            info("Validation error for $field: $error");
+        $rules = [
+            'key' => ['required', Rule::exists('carts', 'key')],
+            'quantity' => ['required', 'numeric', 'min:1'],
+            'method' => ['required', 'string', Rule::in(['set', 'add', 'subtract'])],
+            'type_id' => ['required', Rule::exists($type->tbl(), 'id')],
+            'floor_table_id' => ['required', Rule::exists('floor_tables', 'id')]
+        ];
+        
+        $validator = Validator::make($request->all(), $rules);
+        
+        if ($validator->fails()) {
+            return response()->json([
+                'errors' => $validator->errors()->all(), // Fetch all error messages
+                'status_code' => 400
+            ], 400);
         }
-    }
+        
+    // $attributes = $request->validate($rules);
+  
+    $attributes = $request->all();
 
-    // Return response with validation errors
-    return response()->json(['error' => $e->errors(), 'StatusCode' => 400], 400);
-}
-        $attributes['type'] = $type_validated['type'];
+
+$attributes['type'] = $type_validated['type'];
       
         $cart_helper = new CartHelper($request);
       

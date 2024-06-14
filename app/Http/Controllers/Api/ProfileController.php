@@ -27,14 +27,14 @@ class ProfileController extends Controller
                 'name' => $user->name,
                 'email'=>$user->email,
                 'phone'=>$user->phone,
-             
+                'profile_photo_url'=>$user->profile_photo_url
             ];
             return response()->json($userData);
         } else {
-            return response()->json([], 200);
+            return response()->json(['message'=>"User is not loged In"], 404);
         }
-    }
 
+    }
 
 
 
@@ -43,30 +43,34 @@ class ProfileController extends Controller
         $user = Auth::user();
     
         if (!$user) {
-            return response()->json(['error' => 'Unauthorized' , 'Statuc code'=>401], 401);
+            return response()->json(['error' => 'Unauthorized' , 'Status code' => 401], 401);
         }
     
         $validator = Validator::make($request->all(), [
-           'name' => 'required|string|max:255|regex:/^[^\d]+$/',
+            'name' => 'required|string|max:255|regex:/^[^\d]+$/',
             'email' => 'required|email|unique:users,email,'.$user->id,
-           'phone' => 'nullable|numeric|digits_between:7,10',
-            'profile_photo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'phone' => 'nullable|numeric|digits:10',
+            'profile_photo' => 'nullable|image|mimes:jpeg,png,jpg,gif',
         ]);
-        
-        
     
         if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors(),'Statuc code'=>400], 400);
+            return response()->json(['errors' => $validator->errors(),'Status code' => 400], 400);
         }
     
-        if ($request->hasFile('profile_photo_path')) {
-            $profilePhoto = $request->file('profile_photo_path');
+        if ($request->hasFile('profile_photo')) {
+            // Delete old profile photo if it exists
+            // if ($user->profile_photo_path) {
+            //     Storage::delete($user->profile_photo_path);
+            // }
+    
+            $profilePhoto = $request->file('profile_photo');
             $profilePhotoName = time() . '_' . $profilePhoto->getClientOriginalName();
             $profilePhoto->move(public_path('profile_photos'), $profilePhotoName);
             $profilePhotoPath = 'profile_photos/' . $profilePhotoName;
             $user->profile_photo_path = $profilePhotoPath;
+           
         }
-    
+      
         // Update user details
         $user->name = $request->input('name', $user->name);
         $user->email = $request->input('email', $user->email);
@@ -89,5 +93,6 @@ class ProfileController extends Controller
             ],
         ]);
     }
+    
     
     }

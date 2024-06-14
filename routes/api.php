@@ -80,9 +80,6 @@ Route::middleware('auth:sanctum')->prefix('customer')->group(function () {
 
 //Cart API
 
-
-
-//This API is used to fetch current loged in user 
 Route::middleware('auth:sanctum')->prefix('customer')->group(function () {
     Route::get('/profileData', [ProfileController::class, 'ProfileData']);
     Route::post('/update', [ProfileController::class, 'update']); 

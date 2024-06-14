@@ -18,21 +18,17 @@ class AppAuthController extends Controller
 {
     public function register(Request $request)
     { 
-        $roleName =  $request->input('role');
+        $roleName =  "Customer";
        
 
-        $validator = Validator::make($request->all(), [
+        $validator = Validator::make($request->all(),[
             'name' =>'required|string|regex:/^[a-zA-Z\s]+$/',
             'email' => 'required|email|unique:users',
-           'phone' => 'nullable|numeric|digits_between:7,10',
+            'phone' => 'nullable|numeric|digits:10',
             'password' => 'required|confirmed',
-            'role' =>'required|string|regex:/^[a-zA-Z\s]+$/',
-            'profile_photo' => 'nullable|image|mimes:jpeg,png,jpg,gif',
-            
+            'profile_photo' => 'nullable|image|mimes:jpeg,png,jpg,gif',    
         ]);
-       
-
-        if ($validator->fails()) {
+       if ($validator->fails()) {
             return response()->json(['error' => $validator->errors(),'StatusCode' => 400], 400);
         }
 
@@ -56,8 +52,6 @@ class AppAuthController extends Controller
         ]);
 
         $user->assignRole($roleName);
-       
-     
         $user->save();
         
         return response()->json(['message' => 'User registered successfully','StatusCode' => 200], 200);
@@ -88,9 +82,17 @@ class AppAuthController extends Controller
 
     public function forgotPassword(Request $request)
     {
-        $attributes = $request->validate([
-            'email' => ['required', 'email', 'max:255', Rule::exists('users', 'email')],
-        ]);
+        
+        try {
+            $attributes = $request->validate([
+                'email' => ['required', 'email', 'max:255', Rule::exists('users', 'email')],
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            $errors = $e->validator->errors()->getMessages();
+            return response()->json(['errors' => $errors], 400);
+        }
+        
+        
         $user = User::where('email', $attributes['email'])->first();
     
         $tokenCode = TokenCodeHelper::newCode();
@@ -111,7 +113,7 @@ class AppAuthController extends Controller
         Mail::to($user)->send(new ForgotPasswordRequested($passwordReset));
         
         return new JsonResource([
-            'message' => 'A code has been sent to your email address'
+            'message' => 'Otp Sent Successfully'
         ]);
     }
 

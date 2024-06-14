@@ -9,7 +9,7 @@ use App\Models\Order;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 use Illuminate\Validation\Rule;
-
+use Illuminate\Support\Facades\Validator;
 class OrderController extends Controller
 {
     public function place(Request $request)
@@ -115,15 +115,33 @@ class OrderController extends Controller
     public function placeOrder(Request $request)
     {
         
-        $attributes = $request->validate([
-            'key' => ['required', Rule::exists('carts', 'key')],
-            'floor_table_id' => ['required', Rule::exists('floor_tables', 'id')],
-            'address' => ['nullable', 'array', 'min:1'],
-            'customer' => ['nullable', 'array', 'min:1'],
-            'customer.name' => ['nullable', 'min:1'],
-            'customer.email' => ['nullable', 'email'],
-            'customer.phone' => ['nullable', 'min:4']
-        ]);
+        // $attributes = $request->validate([
+        //     'key' => ['required', Rule::exists('carts', 'key')],
+        //     'floor_table_id' => ['required', Rule::exists('floor_tables', 'id')],
+        //     'address' => ['nullable', 'array', 'min:1'],
+        //     'customer' => ['nullable', 'array', 'min:1'],
+        //     'customer.name' => ['nullable', 'min:1'],
+        //     'customer.email' => ['nullable', 'email'],
+        //     'customer.phone' => ['nullable', 'min:4']
+        // ]);
+
+        $validator = Validator::make($request->all(), [
+    'key' => ['required', Rule::exists('carts', 'key')],
+    'floor_table_id' => ['required', Rule::exists('floor_tables', 'id')],
+    'address' => ['nullable', 'array', 'min:1'],
+    'customer' => ['nullable', 'array', 'min:1'],
+    'customer.name' => ['nullable', 'min:1'],
+    'customer.email' => ['nullable', 'email'],
+    'customer.phone' => ['nullable', 'min:4']
+]);
+
+if ($validator->fails()) {
+    // Validation fails
+    // You can return validation errors or handle them as per your application logic
+    // For example:
+    return response()->json(['errors' => $validator->errors()], 422);
+}
+$attributes = $validator->validated();
 
         $cart_helper = new CartHelper($request);
         $summary = $cart_helper->summary($attributes);
