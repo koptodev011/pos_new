@@ -12,7 +12,7 @@ use Illuminate\Http\Resources\Json\JsonResource;
 use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\Auth;
 use App\Models\OrderPayment;
-
+use Illuminate\Support\Facades\Validator;
 
 class PaymentController extends Controller
 {
@@ -31,29 +31,43 @@ class PaymentController extends Controller
     public $tip=0;
     public $customTip=0;
 
-    public function waiterTip(Request $request,Order $order)
+    public function waiterTip(Request $request)
     {
-        $request->validate([
-            'option' => 'required',
+       
+        $validator = Validator::make($request->all(), [
+            'Waiter_Tip' => 'required|numeric',
+            'floor_table_id' => 'required|numeric|exists:tenant_units,id'
         ]);
-        $option = $request->input('option');
-      
-     
-        if ($this->selectedOption == $option) {
+        
+        if ($validator->fails()) {
+            return response()->json([
+                'errors' => $validator->errors()->all()
+            ], 400);
+        }        
+
+        $Waiter_Tip = $request->input('Waiter_Tip');
+    
+            if ($this->selectedOption == $Waiter_Tip) {
             $this->selectedOption = 0;
             $this->tip=0;
         } else {
-            $this->selectedOption = $option;
-            $this->tip=$option;            
+            $this->selectedOption = $Waiter_Tip;
+            $this->tip=$Waiter_Tip;    
+               
         }
-        $id=$order['id'];
-        $orderData=$order['summary'];
-        // $orderDataArray = json_decode($orderData, true);
+        $orders = Order::with(['floorTable', 'orderItems.orderable.media', 'orderPayments', 'orderHistories'])
+        ->where('floor_table_id', $request->floor_table_id)
+        ->where('status', '<>','Completed')
+        ->orderBy('id','DESC')
+        ->first();
+
+      
+        $orderData=$orders['summary'];
         $orderDataArray = $orderData;
-       
-       
+      
+     
         $summary = [
-            'total' => $orderDataArray['total']+$option,
+            'total' => $orderDataArray['total']+$Waiter_Tip,
             'sub_total' => $orderDataArray['sub_total'],
             'tax' => [
                 'text' => 'Taxes',
@@ -73,14 +87,17 @@ class PaymentController extends Controller
             ],
         ];
 
+        $orders = Order::with(['floorTable', 'orderItems.orderable.media', 'orderPayments', 'orderHistories'])
+        ->where('floor_table_id', $request->floor_table_id)
+        ->where('status', '<>','Completed')
+        ->orderBy('id','DESC')
+        ->update(['summary' => json_encode($summary)]);
       
-        $order->update([
-            'summary' => $summary
-        ]);
-
+       
         return response()->json([
-            'success' => true,
             'message' => 'Tip applied successfully',
+            'success' => true,
+            
         ]);
         
     }
@@ -104,30 +121,34 @@ class PaymentController extends Controller
     }
 
 
-    public function applyCoupon(Request $request,Order $order)
+    public function applyCoupon(Request $request)
     {
-        $request->validate([
+        $validator = Validator::make($request->all(), [
             'coupan_code' => 'required',
-            'tenant_unit_id' => 'required|numeric'
+            'tenant_unit_id' => 'required|numeric',
+            'floor_table_id' => 'required|numeric|exists:tenant_units,id'
         ]);
         
-        // Retrieve the input data
-        $userCouponCode = strtolower($request->input('coupan_code'));
+        if ($validator->fails()) {
+            return response()->json([
+                'errors' => $validator->errors()->all()
+            ], 400);
+        }
         
+        $userCouponCode = strtolower($request->input('coupan_code'));
         $tenantUnitId = $request->input('tenant_unit_id');
-       // Apply the coupon
+        $floor_table_id = $request->input('floor_table_id');
+    
         $orderHelper = new OrderHelper();
-        $orderDetail = $orderHelper->ApiapplyCoupon($userCouponCode,$tenantUnitId,$order);
+        $orderDetail = $orderHelper->ApiapplyCoupon($userCouponCode,$tenantUnitId,$floor_table_id);
         if ($orderDetail['error'] == true) {
             return response()->json([
                 'message' => $orderDetail['message'],
-                'Status Code'=>400
             ]);
         } else {
             // Assume the coupon is valid and applied
             return response()->json([
                 'message' => 'Coupon applied successfully',
-                'Status Code'=>200
             ]);
         }
     }

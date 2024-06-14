@@ -160,16 +160,19 @@ class OrderHelper
 
 
 
-    public function ApiapplyCoupon($code, $tenantUnitID ,Order $order)
+    public function ApiapplyCoupon($code,$tenantUnitID,$floor_table_id)
     {
         $cartHelper = new \App\Helpers\CartHelper();
-       
         $currentDate = now();
-        $orderData = $order['summary'];
-        $id=$order['id'];
-        
-        $total=$orderData['total'];
-        $discount = 0;
+        $orders = Order::with(['floorTable', 'orderItems.orderable.media', 'orderPayments', 'orderHistories'])
+        ->where('floor_table_id', $floor_table_id)
+        ->where('status', '<>','Completed')
+        ->orderBy('id','DESC')
+        ->first();
+        $id=$orders['id'];
+        $orderData = $orders['summary'];
+$total=$orders['summary']['total'];
+   $discount = 0;
         $coupon = PromoCode::whereHas('tenantUnits', function (Builder $query) use ($tenantUnitID) {
                 $query->where('tenant_unit_id', $tenantUnitID);
             })
@@ -180,12 +183,13 @@ class OrderHelper
             ->whereDate('start_date', '<=', $currentDate)
             ->whereDate('end_date', '>=', $currentDate)
             ->first();
-   
+
+
         if ($coupon) {
+           
             $promoCodeUser = PromoCodeUsers::where('user_id', Auth::user()->id)
                 ->where('promo_code_id', $coupon->id)
                 ->first();
-    
             if ($promoCodeUser) {
                 return [
                     'error' => true,
@@ -199,7 +203,6 @@ class OrderHelper
                     $discount = ($total * ($coupon['value'] / 100));
                     $total = $total - $discount;
                 }
-    
                 $summary = [
                     'total' => $total,
                     'sub_total' => $orderData['sub_total'],
@@ -220,14 +223,16 @@ class OrderHelper
                         'value' => $orderData['tip']['value']
                     ],
                 ];
+               
                 $orderUpdated = Order::where('id', $id)->update([
                     'summary' => json_encode($summary)
                 ]);
+                
                 PromoCodeUsers::create([
                     'user_id' => Auth::user()->id,
                     'promo_code_id' => $coupon->id
                 ]);
-    
+                
                 return [
                     'error' => false
                 ];
