@@ -160,9 +160,12 @@ class PaymentController extends Controller
     {
         $user = Auth::user();
         $user_id=$user['id'];
-         $orders = Order::with(['floorTable', 'orderItems.orderable.media', 'orderPayments', 'orderHistories'])
-            ->where('user_id', $user_id)
-            ->get();    
+        $orders = Order::with(['floorTable', 'orderItems.orderable.media', 'orderPayments', 'orderHistories'])
+        ->where('user_id', $user_id)
+        ->where('status', 'Completed') // Use single quotes for string values
+        ->orderBy('id', 'DESC')
+        ->get();
+   
          return JsonResource::make($orders);
     }
 
