@@ -323,36 +323,39 @@ class PaymentController extends Controller
     // }
 
 
-    public function getOrderPaymentDetails(Request $request)
-{
-
-   
-    $user = Auth::user();
-   
-    // $cartHelper = new CartHelper();
-    // $tenantUnit = $cartHelper->tenantUnit();
-  
-    // $currency = $tenantUnit->country->getCurrency();
-
-    $orderHelper = new OrderHelper();
-    $orderData = $orderHelper->orderSummary();
-    $response = [
-        // 'currency' => $currency,
-        'orderData' => $orderData
-    ];
+    public function paymentDetails()
+    {
+        try {
+            // $cartHelper = new CartHelper();
+            // $tenantUnit = $cartHelper->tenantUnit();
+            // $currency = $tenantUnit->country->getCurrency();
 
 
-    if ($orderData['summary']['promo']['value'] != 0) {
-        $response['couponApplied'] = true;
-        $response['couponCode'] = strtoupper($orderData['summary']['promo']['text']);
+       $orderHelper = new OrderHelper();
+            $orderData = $orderHelper->PaymentSummary();
+
+           
+            $response = [
+                // 'currency' => $currency,
+                'orderData' => $orderData
+            ];
+
+            
+
+            if ($orderData['summary']['promo']['value'] != 0) {
+                $response['couponApplied'] = true;
+                $response['couponCode'] = strtoupper($orderData['summary']['promo']['text']);
+               
+            }
+
+            $response['selectedOption'] = $orderData['summary']['tip']['value'];
+
+            return response()->json($response);
+           
+        } catch (\Exception $e) {
+           
+        }
     }
-    print_r($orderData['summary']['promo']['text']);
-    dd();
-
-    $response['selectedOption'] = $orderData['summary']['tip']['value'];
-
-    return Response::json($response);
-}
 
 
 

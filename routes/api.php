@@ -112,7 +112,7 @@ Route::middleware('auth:sanctum')->prefix('/orders')->group(function () {
     Route::post('/applycoupon', [PaymentController::class, 'applyCoupon']);
     Route::get('/{order}/customTip', [PaymentController::class, 'CustomTip']);
     // Route::get('/{order}/render', [PaymentController::class, 'render']);
-    Route::get('/getOrderPaymentDetails', [Api\PaymentController::class, 'getOrderPaymentDetails']);
+    Route::get('/getOrderPaymentDetails', [Api\PaymentController::class, 'paymentDetails']);
 
     
 });

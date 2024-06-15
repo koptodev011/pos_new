@@ -67,6 +67,46 @@ class OrderHelper
         ];
     }
 
+
+
+    
+
+    public function PaymentSummary()
+    {
+        $orderData = Order::with('orderItems.orderable.media')
+        ->where('user_id', Auth::user()->id)
+        ->where('status', '!=', 'Completed')
+        ->first();
+    
+    $orderDataArray = json_decode(json_encode($orderData), true);
+    
+    $id = 0;
+    if (isset($orderDataArray['order_items'])) {
+        $outputArray = [];
+    
+        foreach ($orderDataArray['order_items'] as $item) {
+          
+            $output = [
+                'Order_item:-' . $id => [
+                    'order_items' => [
+                        'name' => $item['orderable']['name'],
+                        'price' => $item['orderable']['price'],
+                        'quantity' => $item['quantity'],
+                        'total'=>$item['orderable']['price']* $item['quantity'],
+                    ]
+                ]
+            ];
+    
+            $outputArray[] = $output;
+            $id++;
+
+        }
+        $outputArray[]=$orderData['summary'];
+        echo json_encode($outputArray, JSON_PRETTY_PRINT);
+     
+    }
+}
+
     public function applyCoupon($code){
         
 
