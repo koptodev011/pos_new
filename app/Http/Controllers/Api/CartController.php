@@ -5,13 +5,14 @@ namespace App\Http\Controllers\Api;
 use App\Enums\CartItemType;
 use App\Helpers\CartHelper;
 use App\Http\Controllers\Controller;
-
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
-
 use function Pest\Laravel\from;
+use Illuminate\Validation\ValidationException;
+
+
 
 class CartController extends Controller
 {
@@ -85,8 +86,7 @@ class CartController extends Controller
         ]);
         if ($type_validator->fails()) {
             return response()->json([
-                'errors' => $type_validator->errors()->first('type'),
-                'status code'=>400
+                'errors' => $type_validator->errors()->first('type')
             ], 400);
         }
         $type_validated = $type_validator->validated();
@@ -105,8 +105,7 @@ class CartController extends Controller
         
         if ($validator->fails()) {
             return response()->json([
-                'errors' => $validator->errors()->all(), // Fetch all error messages
-                'status_code' => 400
+                'errors' => $validator->errors()->all()
             ], 400);
         }
         
@@ -123,24 +122,24 @@ $attributes['type'] = $type_validated['type'];
        
         return JsonResource::make($summary);
     }
+    
+public function AllOrderDetails(Request $request)
+{
+    $validator = Validator::make($request->all(), [
+        'key' => ['required', Rule::exists('carts', 'key')],
+        'floor_table_id' => ['required', Rule::exists('floor_tables', 'id')],
+    ]);
 
-
-    public function AllOrderDetails(Request $request)
-    {
-        try {
-            $attributes = $request->validate([
-                'key' => ['required', Rule::exists('carts', 'key')],
-                'floor_table_id' => ['required', Rule::exists('floor_tables', 'id')]
-            ]);
-        } catch (ValidationException $e) {
-            $errors = $e->validator->errors()->getMessages();
-            return response()->json(['errors' => $errors], 400);
-        }
-
-        $cart_helper = new CartHelper($request);
-        $summary = $cart_helper->summary($attributes);
-
-        return JsonResource::make($summary);
+    if ($validator->fails()) {
+        return response()->json(['errors' => $validator->errors()], 400);
     }
+
+    $attributes = $validator->validated();
+
+    $cart_helper = new CartHelper($request);
+    $summary = $cart_helper->summary($attributes);
+
+    return JsonResource::make($summary);
+}
 
 }

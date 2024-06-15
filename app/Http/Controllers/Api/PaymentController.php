@@ -280,47 +280,81 @@ class PaymentController extends Controller
     // }
 
 
-    public function render()
-    {
+    // public function render()
+    // {
         // $cartHelper = new \App\Helpers\CartHelper();
         // $tenantUnit = $cartHelper->tenantUnit();
         // $currency = $tenantUnit->country->getCurrency();
 
-        $orderHelper = new \App\Helpers\OrderHelper();
+    //     $orderHelper = new \App\Helpers\OrderHelper();
 
-        $orderData = $orderHelper->orderSummary();
-        dd($orderData);
-        $response = [];
+    //     $orderData = $orderHelper->orderSummary();
+    //     dd($orderData);
+    //     $response = [];
        
-        if($orderData){
-            if($orderData['summary']['promo']['value'] !=0){
-                $response['couponApplied'] = true;
-                $response['couponCode'] = strtoupper($orderData['summary']['promo']['text']);
-                dd($orderData['summary']['promo']['text']);
-            }
-            $paid_amount = OrderPayment::where('order_id', $orderData['orderData']->id)->sum('amount');
+    //     if($orderData){
+    //         if($orderData['summary']['promo']['value'] !=0){
+    //             $response['couponApplied'] = true;
+    //             $response['couponCode'] = strtoupper($orderData['summary']['promo']['text']);
+    //             dd($orderData['summary']['promo']['text']);
+    //         }
+    //         $paid_amount = OrderPayment::where('order_id', $orderData['orderData']->id)->sum('amount');
          
-            $guestPayments = OrderPayment::where('order_id', $orderData['orderData']->id)->get();
+    //         $guestPayments = OrderPayment::where('order_id', $orderData['orderData']->id)->get();
 
-            if(session()->has('client_key')){
-                if(count($guestPayments) > 0){
-                    $response['selectedTab'] = 'splitPayment';
-                }
-            }elseif($orderData['orderData']['meta']['type'] == 'splitPayment'){
-                $response['selectedTab'] = 'splitPayment';
-            }else{
-                $response['selectedTab'] = 'singlePayment';
-            }
+    //         if(session()->has('client_key')){
+    //             if(count($guestPayments) > 0){
+    //                 $response['selectedTab'] = 'splitPayment';
+    //             }
+    //         }elseif($orderData['orderData']['meta']['type'] == 'splitPayment'){
+    //             $response['selectedTab'] = 'splitPayment';
+    //         }else{
+    //             $response['selectedTab'] = 'singlePayment';
+    //         }
            
-            $response['selectedOption'] = $orderData['summary']['tip']['value'];
-            $response['currency'] = $currency;
-            $response['orderData'] = $orderData;
-            $response['guestPayments'] = $guestPayments;
-            $response['paid_amount'] = $paid_amount;
-        }
+    //         $response['selectedOption'] = $orderData['summary']['tip']['value'];
+    //         $response['currency'] = $currency;
+    //         $response['orderData'] = $orderData;
+    //         $response['guestPayments'] = $guestPayments;
+    //         $response['paid_amount'] = $paid_amount;
+    //     }
 
-        return response()->json($response);
+    //     return response()->json($response);
+    // }
+
+
+    public function getOrderPaymentDetails(Request $request)
+{
+
+   
+    $user = Auth::user();
+   
+    // $cartHelper = new CartHelper();
+    // $tenantUnit = $cartHelper->tenantUnit();
+  
+    // $currency = $tenantUnit->country->getCurrency();
+
+    $orderHelper = new OrderHelper();
+    $orderData = $orderHelper->orderSummary();
+    $response = [
+        // 'currency' => $currency,
+        'orderData' => $orderData
+    ];
+
+
+    if ($orderData['summary']['promo']['value'] != 0) {
+        $response['couponApplied'] = true;
+        $response['couponCode'] = strtoupper($orderData['summary']['promo']['text']);
     }
+    print_r($orderData['summary']['promo']['text']);
+    dd();
+
+    $response['selectedOption'] = $orderData['summary']['tip']['value'];
+
+    return Response::json($response);
+}
+
+
 
     
 }

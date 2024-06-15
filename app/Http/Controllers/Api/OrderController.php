@@ -138,7 +138,7 @@ class OrderController extends Controller
 ]);
 
 if ($validator->fails()) {
-    return response()->json(['errors' => $validator->errors()], 422);
+    return response()->json(['errors' => $validator->errors()], 400);
 }
 $attributes = $validator->validated();
 

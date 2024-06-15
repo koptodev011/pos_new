@@ -29,7 +29,7 @@ class AppAuthController extends Controller
             'profile_photo' => 'nullable|image|mimes:jpeg,png,jpg,gif',    
         ]);
        if ($validator->fails()) {
-            return response()->json(['error' => $validator->errors(),'StatusCode' => 400], 400);
+            return response()->json(['error' => $validator->errors()], 400);
         }
 
         $profilePhotoPath = null;
@@ -54,7 +54,7 @@ class AppAuthController extends Controller
         $user->assignRole($roleName);
         $user->save();
         
-        return response()->json(['message' => 'User registered successfully','StatusCode' => 200], 200);
+        return response()->json(['message' => 'User registered successfully'], 200);
     }
 
 
@@ -71,10 +71,10 @@ class AppAuthController extends Controller
        if($validator){
         $user = User::where('email', $request->email)->first();
         if (!$user || !Hash::check($request->password, $user->password)) {
-           return response()->json(['message' => 'Login failed.', 'status' => "Failed", 'StatusCode' => 400], 400);
+           return response()->json(['message' => 'Login failed.', 'status' => "Failed"], 400);
         } else {
             $token = $user->createToken($user->id)->plainTextToken;
-            return response()->json(['token' => $token, 'status' => "Success", 'StatusCode' => 200], 200);
+            return response()->json(['token' => $token, 'status' => "Success"], 200);
         } 
        }
     }
