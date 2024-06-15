@@ -83,7 +83,7 @@ Route::middleware('auth:sanctum')->prefix('customer')->group(function () {
 Route::middleware('auth:sanctum')->prefix('customer')->group(function () {
     Route::get('/profileData', [ProfileController::class, 'ProfileData']);
     Route::post('/update', [ProfileController::class, 'update']); 
-    Route::get('/orderHistory',[OrderHistory::class,'orderHistory']);
+    // Route::get('/orderHistory',[OrderHistory::class,'orderHistory']);
     Route::post('/send-ebill/{id}', [OrderHistory::class,'sendEBill']);
 });
 Route::post('/AddToCart',[CartController::class,'AddToCart']);
@@ -108,6 +108,7 @@ Route::middleware('auth:sanctum')->prefix('/orders')->group(function () {
     // Route::get('/{order}/show', [PaymentController::class, 'show']);
     // Route::get('/{order}/waiterTip', [PaymentController::class, 'waiterTip']);
     // Route::get('/{order}/applycoupon', [PaymentController::class, 'applyCoupon']);
+    Route::get('/OrderHistory',[Api\PaymentController::class,'OrderHistory']);
     Route::post('/applycoupon', [PaymentController::class, 'applyCoupon']);
     Route::get('/{order}/customTip', [PaymentController::class, 'CustomTip']);
     Route::get('/{order}/render', [PaymentController::class, 'render']);

@@ -13,19 +13,19 @@ use App\Models\Menu;
 
 class FavoriteController extends Controller
 {
-    // public function index()
-    // {
-    //     $user = Auth::user();
-    //     if ($user) {
-    //         $menus = Favourite::with(['menu'=>function($query){
-    //             $query->select('id','name','price','priority');
-    //         },
-    //         'menu.media'])->where('user_id', $user->id)->toSql();
-    //         return response()->json($menus);
-    //     } else {
-    //         return response()->json([], 200);
-    //     }
-    // }
+    public function index()
+    {
+        $user = Auth::user();
+        if ($user) {
+            $menus = Favourite::with(['menu'=>function($query){
+                $query->select('id','name','price','priority');
+            },
+            'menu.media'])->where('user_id', $user->id)->get();
+            return response()->json($menus);
+        } else {
+            return response()->json(['message'=>'Please add your favourite menu'], 200);
+        }
+    }
 
    
     // public function index()
@@ -53,29 +53,6 @@ class FavoriteController extends Controller
     //     }
     // }
     
-
-
-
-
-
-    // public function addFavorite($menuID)
-    // {
-      
-    //     $helper = new MenuHelper();    
-        
-    //     if ($helper->addFavourite($menuID)) {
-    //         $responseMessage = 'Menu successfully added in Favorites!';
-    //     } else {
-    //         $responseMessage = 'Menu successfully removed from Favorites!';
-    //     }
-        
-       
-    //     return response()->json([
-    //         'message' => $responseMessage,
-    //         'is_favorite' => $helper->isFavorite($menuID)
-    //     ]);
-    // }
-
     
 
     public function addFavorite($menuID)

@@ -101,6 +101,8 @@ class PaymentController extends Controller
         ]);
         
     }
+
+
     public function customTip(Request $request, Order $order)
     {
        
@@ -152,6 +154,18 @@ class PaymentController extends Controller
             ]);
         }
     }
+
+
+    public function OrderHistory(Request $request)
+    {
+        $user = Auth::user();
+        $user_id=$user['id'];
+         $orders = Order::with(['floorTable', 'orderItems.orderable.media', 'orderPayments', 'orderHistories'])
+            ->where('user_id', $user_id)
+            ->get();    
+         return JsonResource::make($orders);
+    }
+
 
     // public function render(Request $request,Order $order)
     // {
