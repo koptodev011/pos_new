@@ -98,7 +98,7 @@ class CartController extends Controller
             'quantity' => ['required', 'numeric', 'min:1'],
             'method' => ['required', 'string', Rule::in(['set', 'add', 'subtract'])],
             'type_id' => ['required', Rule::exists($type->tbl(), 'id')],
-            'floor_table_id' => ['required', Rule::exists('floor_tables', 'id')]
+            'floor_table_id' => ['required','numeric', Rule::exists('floor_tables', 'id')]
         ];
         
         $validator = Validator::make($request->all(), $rules);
