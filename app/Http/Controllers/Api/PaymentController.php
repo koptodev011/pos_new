@@ -323,41 +323,62 @@ class PaymentController extends Controller
     // }
 
 
-    public function paymentDetails()
-    {
-        try {
-            // $cartHelper = new CartHelper();
-            // $tenantUnit = $cartHelper->tenantUnit();
-            // $currency = $tenantUnit->country->getCurrency();
+    // public function paymentDetails()
+    // {
+    //     try {
+    //         // $cartHelper = new CartHelper();
+    //         // $tenantUnit = $cartHelper->tenantUnit();
+    //         // $currency = $tenantUnit->country->getCurrency();
 
 
-       $orderHelper = new OrderHelper();
-            $orderData = $orderHelper->PaymentSummary();
-
-           
-            $response = [
-                // 'currency' => $currency,
-                'orderData' => $orderData
-            ];
-
-            
-
-            if ($orderData['summary']['promo']['value'] != 0) {
-                $response['couponApplied'] = true;
-                $response['couponCode'] = strtoupper($orderData['summary']['promo']['text']);
+    //    $orderHelper = new OrderHelper();
+    //         $orderData = $orderHelper->PaymentSummary();
+    //         $response = [
+    //             // 'currency' => $currency,
+    //             'orderData' => $orderData
+    //         ];
+    //         if ($orderData['summary']['promo']['value'] != 0) {
+    //             $response['couponApplied'] = true;
+    //             $response['couponCode'] = strtoupper($orderData['summary']['promo']['text']);
                
-            }
+    //         }
 
-            $response['selectedOption'] = $orderData['summary']['tip']['value'];
+    //         $response['selectedOption'] = $orderData['summary']['tip']['value'];
 
-            return response()->json($response);
+    //         // return response()->json($response);
+
+    //        return response()->json($orderData);
+    //     } catch (\Exception $e) {
            
-        } catch (\Exception $e) {
-           
+    //     }
+    // }
+
+public function paymentDetails()
+{
+    try {
+        $orderHelper = new OrderHelper();
+        $orderData = json_decode($orderHelper->PaymentSummary(), true);
+        $response = [
+            'orderData' => $orderData
+        ];
+        if ($orderData['summary']['promo']['value'] != 0) {
+            $response['couponApplied'] = true;
+            $response['couponCode'] = strtoupper($orderData['summary']['promo']['text']);
         }
+        $response['selectedOption'] = $orderData['summary']['tip']['value'];
+        return response()->json($response);
+    } catch (\Exception $e) {
+        
     }
+}
 
 
 
-    
+public function paynow(){
+
+}
+
+
+
+   
 }

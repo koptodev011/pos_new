@@ -95,9 +95,8 @@ class Payment extends Component
         $orderHelper = new \App\Helpers\OrderHelper();
         $orderHelper->removeCoupon();
         $this->appliedCouponStatus=false;
-        // Remove the applied coupon
         $this->couponApplied = false;
-        $this->couponCode = ''; // Clear the coupon code input field
+        $this->couponCode = '';
     }
 
     public function render()
@@ -218,4 +217,5 @@ class Payment extends Component
     }
 
    
+    
 }

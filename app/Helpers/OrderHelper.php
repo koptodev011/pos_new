@@ -83,27 +83,23 @@ class OrderHelper
     $id = 0;
     if (isset($orderDataArray['order_items'])) {
         $outputArray = [];
-    
         foreach ($orderDataArray['order_items'] as $item) {
-          
             $output = [
                 'Order_item:-' . $id => [
                     'order_items' => [
                         'name' => $item['orderable']['name'],
                         'price' => $item['orderable']['price'],
                         'quantity' => $item['quantity'],
-                        'total'=>$item['orderable']['price']* $item['quantity'],
+                        // 'imageUrl' => $item['orderable']['media']['original_url'],
+                         'total'=>$item['orderable']['price']* $item['quantity'],
                     ]
                 ]
             ];
-    
             $outputArray[] = $output;
             $id++;
-
         }
         $outputArray[]=$orderData['summary'];
         echo json_encode($outputArray, JSON_PRETTY_PRINT);
-     
     }
 }
 
