@@ -46,32 +46,36 @@ class OrderHelper
         ->where('status','!=','Completed')
         ->first();
       
-        return [
-          
-            'orderData' => $orderData,
-            'summary' => [
-                'total' => $orderData['summary']['total'],
-                'sub_total' => $orderData['summary']['sub_total'],
-                'tax' => [
-                    'text' => 'Taxes',
-                    'value' => $orderData['summary']['tax']['value']
+        if($orderData){
+            return [
+                'orderData' => $orderData,
+                'summary' => [
+                    'total' => $orderData['summary']['total'],
+                    'sub_total' => $orderData['summary']['sub_total'],
+                    'tax' => [
+                        'text' => 'Taxes',
+                        'value' => $orderData['summary']['tax']['value']
+                    ],
+                    'discount' => [
+                        'text' => 'Discount',
+                        'value' => $orderData['summary']['discount']['value']
+                    ],
+                    'promo' => [
+                        'text' => $orderData['summary']['promo']['text'],
+                        'value' => $orderData['summary']['promo']['value']
+                    ],
+                    'tip' => [
+                        'text' => 'Tip',
+                        'value' => $orderData['summary']['tip']['value']
+                    ],
+                    'loyalty'=>[
+                        'text' => $orderData['summary']['loyalty']['text'],
+                        'value' => $orderData['summary']['loyalty']['value']
+                    ]
                 ],
-                'discount' => [
-                    'text' => 'Discount',
-                    'value' => $orderData['summary']['discount']['value']
-                ],
-                'promo' => [
-                    'text' => $orderData['summary']['promo']['text'],
-                    'value' => $orderData['summary']['promo']['value']
-                ],
-                'tip' => [
-                    'text' => 'Tip',
-                    'value' => $orderData['summary']['tip']['value']
-                ],
-            ],
-           
-        ];
-       
+               
+            ];
+        }
     }
 
     public function paymentDetailsSummary($floorTableId,$tenantUnitId)
@@ -507,6 +511,158 @@ $total=$orders['summary']['total'];
         }
 
 
+    }
+
+
+
+    public function applyLoyalty($tenantUnitID,$floorTableId){
+       
+        // $cartHelper = new \App\Helpers\CartHelper();
+        // $tenantUnitID = $cartHelper->tenantUnitID();
+        $orderData=$this->orderSummary();
+   
+        $total=$orderData['summary']['total'];
+
+        $loyaltyDetails =$this->loyaltyPointsDetails($tenantUnitID);
+        $loyaltyPoint = $loyaltyDetails->first();
+        $minValue = $loyaltyPoint->min_value;
+        $maxValue = $loyaltyPoint->max_value;
+        $gainPercentage = $loyaltyPoint->gain_percentage;
+        $decodedData = json_decode($loyaltyDetails, true);
+        if($loyaltyDetails){
+          
+            if($total > $minValue && $total <= $maxValue ){
+              
+                if(Auth::user()){
+                    $loyaltyPointsUser=LoyaltyPointsUser::where('user_id', Auth::user()->id)->where('order_id', $orderData['orderData']['id'])->where('type','used')->first();
+
+                }else{
+                    return [
+                       'error' => true,
+                       'message' => 'Please Login First'
+                    ];
+                }
+
+               
+                if($loyaltyPointsUser){
+                   
+                    $usedPoints=$loyaltyPointsUser['points'];
+                    $total=$orderData['summary']['total'];                
+                    
+                    $summary= [
+                        'total' => $total,
+                       'sub_total' => $orderData['summary']['sub_total'],
+                        'tax' => [
+                            'text' => 'Taxes',
+                            'value' => $orderData['summary']['tax']['value']
+                            ],
+                        'discount' => [
+                            'text' => $orderData['summary']['discount']['text'],
+                            'value' => $orderData['summary']['discount']['value']
+                        ],
+                        'promo' => [
+                            'text' => $orderData['summary']['promo']['text'],
+                            'value' => $orderData['summary']['promo']['value']
+                        ],
+                        'tip' => [
+                            'text' => 'Tip',
+                            'value' => $orderData['summary']['tip']['value']
+                        ],
+                        'loyalty' => [
+                            'text' => '',
+                            'value' => 0
+                        ],
+                    ];
+                    Order::where('id', $orderData['orderData']->id)->update([
+                       'summary' => json_encode($summary)
+                    ]);
+                   
+                    $loyaltyPointsUser=LoyaltyPointsUser::where('user_id', Auth::user()->id)->where('order_id', $orderData['orderData']->id)->where('type','used')->delete();
+
+                    $user = Auth::user();
+                  
+                    $updated_points = Auth::user()->loyalty_points + $usedPoints;
+                    
+                    User::where('id',$user->id)->update(['loyalty_points' => $updated_points]);
+                    return [
+                        'error' => false
+                    ];
+    
+                }else{
+                
+                    $utilize_percentage = $loyaltyPoint->utilize_percentage;
+                    
+                     if($utilize_percentage==''){
+                            $loyaltyPercent=100;
+                        }else{
+                            $loyaltyPercent=$utilize_percentage;    
+                        }
+
+                       
+                     $userLoyalty=Auth::user()->loyalty_points;
+                    
+                        $applyLoyalty=($userLoyalty * ($loyaltyPercent/100));
+                       
+                        $summary= [
+                            'total' => $total,
+                           'sub_total' => $orderData['summary']['sub_total'],
+                            'tax' => [
+                                'text' => 'Taxes',
+                                'value' => $orderData['summary']['tax']['value']
+                                ],
+                            'discount' => [
+                                'text' => $orderData['summary']['discount']['text'],
+                                'value' => $orderData['summary']['discount']['value']
+                            ],
+                            'promo' => [
+                                'text' => $orderData['summary']['promo']['text'],
+                                'value' => $orderData['summary']['promo']['value']
+                            ],
+                            'tip' => [
+                                'text' => 'Tip',
+                                'value' => $orderData['summary']['tip']['value']
+                            ],
+                            'loyalty' => [
+                                'text' => Auth::user()->id,
+                                'value' => $applyLoyalty
+                            ],
+                        ];
+          
+                        
+                    Order::where('id', $orderData['orderData']->id)->update([
+                        'summary' => json_encode($summary)
+                    ]);
+                
+                   
+                    LoyaltyPointsUser::create([
+                        'user_id' => Auth::user()->id,
+                        'points' => $applyLoyalty,
+                        'order_id' => $orderData['orderData']->id,
+                        'type' => 'used'
+                    ]);
+                   
+                   
+                    $user = Auth::user();
+                  
+                    $updated_points = Auth::user()->loyalty_points - $applyLoyalty;
+                    
+                    User::where('id',$user->id)->update(['loyalty_points' => $updated_points]);
+                    return [
+                        'error' => false
+                    ];
+                 
+                  
+                }
+    
+            }else{
+                return [
+                    'error' => true,
+                   'message' => 'Failed to use loyalty points'
+                ];
+            }
+            
+        }
+            
     }
 
 

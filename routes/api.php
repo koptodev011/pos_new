@@ -133,6 +133,8 @@ Route::get('/LoyaltyPointsDetails', [Api\LoyaltyController::class, 'loyaltyPoint
 
 Route::middleware('auth:sanctum')->prefix('/orders')->group(function () {
     Route::post('/getLoyalty', [Api\LoyaltyController::class, 'getLoyalty']); 
+    Route::post('/applyLoyaltyPoints', [Api\LoyaltyController::class, 'applyLoyaltyPoints']); 
+
 });
 
 

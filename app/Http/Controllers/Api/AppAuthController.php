@@ -19,8 +19,6 @@ class AppAuthController extends Controller
     public function register(Request $request)
     { 
         $roleName =  "Customer";
-       
-
         $validator = Validator::make($request->all(),[
             'name' =>'required|string|regex:/^[a-zA-Z\s]+$/',
             'email' => 'required|email|unique:users',

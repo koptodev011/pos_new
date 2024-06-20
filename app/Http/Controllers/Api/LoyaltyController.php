@@ -58,6 +58,20 @@ class LoyaltyController extends Controller
        return response()->json(['message' => 'Loyalty points added successfully']);
     }
 
+    public function applyLoyaltyPoints(Request $request){
+        $validator = \Validator::make($request->all(), [
+            'tenant_unit_id' => 'required|numeric|exists:tenant_units,id',
+            'floor_table_id'=>'required|numeric'
+       ]);
+       if ($validator->fails()) {
+        return response()->json(['error' => $validator->errors(),"Status Code"=>400], 400);
+    }
+        $tenantUnitID = $request->input('tenant_unit_id');
+        $floorTableId = $request->input('floor_table_id');
+        $orderHelper = new \App\Helpers\OrderHelper();
+        $getLoyality=$orderHelper->applyLoyalty($tenantUnitID,$floorTableId);
+        return response()->json(['message' => 'Loyalty points applyed successfully']);
+    }
 
 
 
