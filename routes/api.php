@@ -9,7 +9,7 @@ use App\Http\Controllers\API\ProfileController;
 use App\Http\Controllers\API\OrderHistory;
 use App\Http\Controllers\API\CartController;
 use App\Http\Controllers\API\PaymentController;
-
+use App\Http\Controllers\Api\LoyaltyController;
 
 Route::post('/login', [Api\AuthController::class, 'login']);
 Route::post('/forgot-password', [Api\AuthController::class, 'forgotPassword']);
@@ -112,8 +112,9 @@ Route::middleware('auth:sanctum')->prefix('/orders')->group(function () {
     Route::post('/applycoupon', [PaymentController::class, 'applyCoupon']);
     Route::get('/{order}/customTip', [PaymentController::class, 'CustomTip']);
     // Route::get('/{order}/render', [PaymentController::class, 'render']);
-    Route::get('/getOrderPaymentDetails', [Api\PaymentController::class, 'paymentDetails']);
-
+    Route::get('/singlePaymentDetails', [Api\PaymentController::class, 'paymentDetails']);
+    Route::get('/spiltPaymentDetails', [Api\PaymentController::class, 'paymentDetails123']);
+    // Route::get('/payment',[Api\PaymentController::class,'payment']);
     
 });
 
@@ -122,12 +123,17 @@ Route::get('/show', [Api\OrderController::class, 'show']);
 
 
 
+//LoyaltyPoints Apis
 
 
 
+Route::get('/LoyaltyPointsDetails', [Api\LoyaltyController::class, 'loyaltyPointsDetails']);
 
 
 
+Route::middleware('auth:sanctum')->prefix('/orders')->group(function () {
+    Route::post('/getLoyalty', [Api\LoyaltyController::class, 'getLoyalty']); 
+});
 
 
 

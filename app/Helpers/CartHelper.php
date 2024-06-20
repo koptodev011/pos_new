@@ -45,21 +45,22 @@ class CartHelper
 
     public function init(FloorTable $floorTable)
     {   
-       
+     
         if (!session()->has('cart_key')) {
+           
             $key = md5(uniqid(rand(), true));
+        
             $cart=Cart::Where('floor_table_id', $floorTable->id)->orderBy('id', 'desc')->first();
+      
             if($cart){
                 $key=$cart->key;
                 if(session()->get('qr_code') != 'true'){
                     $cart->update([
                         'diners' => $cart->diners + 1
                     ]);
-                    //order if any
                     $order = Order::where('floor_table_id', $floorTable->id)
                             ->where('status', '<>', OrderStatus::Completed)
                             ->first();
-                  
                     if($order){
                         $order->update([
                             'diners' => $cart->diners
@@ -69,13 +70,17 @@ class CartHelper
                 }
             }else{
                 $client_key = md5(uniqid(rand(), true));
+               
                 Cart::create([
                     'key' => $key,
                     'floor_table_id' => $floorTable->id,
                     'tenant_unit_id' => $floorTable->tenant_unit_id,
                     'client_info' => $client_key
                 ]);
+              
                 session()->put('client_key', $client_key);
+                
+
                 session()->put('qr_code', 'true');
             }
 
@@ -99,8 +104,9 @@ class CartHelper
     public function sessionCart()
     {
         $cart_key = session()->get('cart_key');
-    
+
         $cart = Cart::where('key', $cart_key)->first();
+      
         if ($cart !== null) {
             $cart->load(['cartItems.cartable']);
         }
@@ -108,6 +114,7 @@ class CartHelper
             //remove this key from session
             session()->forget('cart_key');
             $floorTable = FloorTable::find(session()->get('floor_table_id'));
+            
             $this->init($floorTable);
             $cart=$this->sessionCart();
         }

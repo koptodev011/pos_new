@@ -6,19 +6,15 @@ use App\Http\Controllers\Controller;
 use App\Models\Menu;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
-
 use App\Models\Category;
 use App\Models\Currency;
 use App\Models\Menu as MenuModel;
 use App\models\TenantUnit;
 use App\Models\FloorTable;
-
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Log;
 use Livewire\Component;
 use Livewire\Attributes\On;
-
-
 use Validator;
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
@@ -57,7 +53,7 @@ class MenuController extends Controller
             session()->put('floor_table_id',1);
             $cartHelper = new \App\Helpers\CartHelper();    
             $tenantUnit = $cartHelper->tenantUnit();
-          
+       
             $categories = Category::whereHas('tenantUnits', function (Builder $query) use ($tenantUnitId) {
                 $query->where('tenant_unit_id', $tenantUnitId);
             })->get();
@@ -71,13 +67,16 @@ class MenuController extends Controller
              
             }
             $list = Menu::query()->with('menuCategories')->get()->append(['tagNames', 'images']);
-            $cart_key = session()->get('cart_key');
           
+            $cart_key = session()->get('cart_key');
+            $client_key = session()->get('client_key');
+
             $data=[];
             $data['menus']=$menuData;
             $data['categories']=$categories;
             $data['allMenu']=$list;
             $data['cart_key']=$cart_key;
+            $data['client_key']=$client_key;
             return JsonResource::make($data);
         }
     }

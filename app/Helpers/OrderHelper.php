@@ -9,6 +9,10 @@ use App\Models\PromoCode;
 use App\Models\PromoCodeUsers;
 use App\Models\TenantUnit;
 use illuminate\Database\Eloquent\Builder;
+use App\Models\LoyaltyPoints;
+use App\Models\LoyaltyPointsUser;
+use App\Models\User;
+
 
 
 class OrderHelper
@@ -37,11 +41,13 @@ class OrderHelper
 
     public function orderSummary()
     {
+        
         $orderData=Order::with('orderItems.orderable.media')->where('user_id',Auth::user()->id)
         ->where('status','!=','Completed')
         ->first();
-    
+      
         return [
+          
             'orderData' => $orderData,
             'summary' => [
                 'total' => $orderData['summary']['total'],
@@ -65,8 +71,43 @@ class OrderHelper
             ],
            
         ];
+       
     }
 
+    public function paymentDetailsSummary($floorTableId,$tenantUnitId)
+    {
+     
+        $orderData=Order::with('orderItems.orderable.media')->where('user_id',Auth::user()->id)
+        ->where('status','!=','Completed')
+        ->first();
+
+        return [
+          
+            'orderData' => $orderData,
+            'summary' => [
+                'total' => $orderData['summary']['total'],
+                'sub_total' => $orderData['summary']['sub_total'],
+                'tax' => [
+                    'text' => 'Taxes',
+                    'value' => $orderData['summary']['tax']['value']
+                ],
+                'discount' => [
+                    'text' => 'Discount',
+                    'value' => $orderData['summary']['discount']['value']
+                ],
+                'promo' => [
+                    'text' => $orderData['summary']['promo']['text'],
+                    'value' => $orderData['summary']['promo']['value']
+                ],
+                'tip' => [
+                    'text' => 'Tip',
+                    'value' => $orderData['summary']['tip']['value']
+                ],
+            ],
+           
+        ];
+       
+    }
 
 
     
@@ -397,5 +438,78 @@ $total=$orders['summary']['total'];
          return $orderSummary;
 
     }
+
+
+    // public function loyaltyPointsDetails($tenantUnitID){
+    //     $loyalty = LoyaltyPoints::whereHas('tenantUnits', function (Builder $query) use ($tenantUnitID) {
+    //         $query->where('tenant_unit_id', $tenantUnitID);
+    //     })
+    //     ->where('active',1)
+    //     ->orderBy('id','DESC')
+    //     ->first();
+    //     $loyalty = LoyaltyPoints::where('tenant_unit_id', $tenantUnitID)->get();
+
+    //     return $loyalty;
+    // }
+
+
+    public function loyaltyPointsDetails($tenantUnitID){
+        $loyalty = LoyaltyPoints::where('tenant_unit_id', $tenantUnitID)
+        ->where('active', 1)
+        ->orderBy('id', 'DESC')
+        ->get();
+       
+        return $loyalty;
+    }
+    
+
+    
+    // public function loyaltyPointsDetails($tenantUnitID){
+    //     $loyalty = LoyaltyPoints::where('tenant_unit_id', $tenantUnitID)->get();
+    //     $loyaltyDetails = [];
+    //     return $loyalty;
+    // }
+
+
+    public function getLoyalty($payableAmount,$tenantUnitID,$floorTableId){
+        $orderData=$this->orderSummary();
+    
+        $loyaltyDetails =$this->loyaltyPointsDetails($tenantUnitID);
+        $loyaltyPoint = $loyaltyDetails->first();
+        $minValue = $loyaltyPoint->min_value;
+        $maxValue = $loyaltyPoint->max_value;
+        $gainPercentage = $loyaltyPoint->gain_percentage;
+        $decodedData = json_decode($loyaltyDetails, true);
+
+        if($loyaltyDetails){
+            if($payableAmount > $minValue && $payableAmount <= $maxValue ){
+            
+                $getLoyalty=($payableAmount * ($gainPercentage/100));
+                $user = Auth::user();
+                $user_id=$user->id;
+               
+             $userData = LoyaltyPointsUser::where('user_id',$user_id)->first();
+              
+                LoyaltyPointsUser::create([
+                    'user_id' => Auth::user()->id,
+                    'points' => $getLoyalty,
+                    'order_id' => $orderData['orderData']->id,
+                    'type' => 'gained'
+                ]);
+              $updated_points = Auth::user()->loyalty_points + $getLoyalty;
+             
+                $user=User::find($user->id);
+                $user->update([
+                    'loyalty_points' => $updated_points
+                ]);
+               
+            }
+        }
+
+
+    }
+
+
+
 
 }

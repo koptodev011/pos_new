@@ -37,6 +37,9 @@ return new class () extends Migration {
             $table->longText('payload');
             $table->integer('last_activity')->index();
         });
+        Schema::table('users', function (Blueprint $table) {
+            $table->bigInteger('loyalty_points')->default(0)->change();
+        });
     }
 
  

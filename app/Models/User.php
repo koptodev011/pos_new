@@ -32,7 +32,8 @@ class User extends Authenticatable
         'phone',
         'active',
         'profile_photo_path',
-        'tz'
+        'tz',
+        'loyalty_points'
     ];
 
     /**
