@@ -78,9 +78,8 @@ class AppAuthController extends Controller
     }
     
 
-    public function forgotPassword(Request $request)
+    public function sendOtp(Request $request)
     {
-        
         try {
             $attributes = $request->validate([
                 'email' => ['required', 'email', 'max:255', Rule::exists('users', 'email')],
@@ -89,14 +88,12 @@ class AppAuthController extends Controller
             $errors = $e->validator->errors()->getMessages();
             return response()->json(['errors' => $errors], 400);
         }
-        
-        
         $user = User::where('email', $attributes['email'])->first();
     
         $tokenCode = TokenCodeHelper::newCode();
-
-        $passwordReset = PasswordReset::where('email', $attributes['email'])->first();
         
+        $passwordReset = PasswordReset::where('email', $attributes['email'])->first();
+   
         if ($passwordReset != null) {
             $passwordReset->update([
                 'token' => $tokenCode
@@ -107,30 +104,78 @@ class AppAuthController extends Controller
                 'token' => $tokenCode
             ]);
         }
-
         Mail::to($user)->send(new ForgotPasswordRequested($passwordReset));
-        
-        return new JsonResource([
-            'message' => 'Otp Sent Successfully'
+         return new JsonResource([
+            'message' => 'Otp Sent Successfully',
+            'PasswordReset'=> $passwordReset
         ]);
     }
 
+    public function veryfyOtp(Request $request){
+        try {
+            $attributes=$request->validate([
+                'otp'=>['required','numeric','max:4'],
+                'email' => ['required', 'email', 'max:255', Rule::exists('users', 'email')],
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            $errors = $e->validator->errors()->getMessages();
+            return response()->json(['errors' => $errors], 400);
+        }
+        $passwordReset = PasswordReset::where('email', $attributes['email'])->first();
+        if($attributes['email']==$passwordReset['email'] && $attributes['otp']==$passwordReset['token']){
+            return response()->json(['message' => 'OTP Verified Successfully'],200);
+        }else{
+            return response()->json(['message' => 'Invalid email or otp'],400);
+        }
+    }
 
+public function resetPassword(Request $request){
+    try {
+        $attributes=$request->validate([
+            'email' => ['required', 'email', 'max:255', Rule::exists('users', 'email')],
+            'password' => ['required', 'min:6', 'confirmed']
+        ]);
+    } catch (\Illuminate\Validation\ValidationException $e) {
+        $errors = $e->validator->errors()->getMessages();
+        return response()->json(['errors' => $errors], 400);
+    }
+    
+    $user = User::where('email', $attributes['email'])->first();
+    $passwordReset = PasswordReset::where('email', $attributes['email'])->first();
+    $user->fill([
+        'password' => Hash::make($attributes['password'])
+    ]);
+    $user->save();
+    $user->tokens()->delete();
+    $passwordReset->delete();
 
+    return JsonResource::make([
+        'message' => 'Password has been changed. Please Relogin'
+    ]);
+
+}
 
     public function changePassword(Request $request)
     {
-        $attributes = $request->validate([
-            'old_password' => ['required'],
-            'password' => ['required', 'confirmed']
-        ]);
+        try {
+            $attributes=$request->validate([
+                'old_password' => ['required'],
+                'password' => ['required', 'confirmed']
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            $errors = $e->validator->errors()->getMessages();
+            return response()->json(['errors' => $errors], 400);
+        }
 
+       
         if ($attributes['old_password'] == $attributes['password']) {
             return response()->json([
                 'message' => 'New password should be different than old password'
             ], 400);
         }
+      
 
+        
         $user = $request->user();
         
         if (!Hash::check($attributes['old_password'], $user->password)) {
@@ -138,16 +183,27 @@ class AppAuthController extends Controller
                 'message' => 'Credentials are not valid'
             ], 400);
         }
-
         $user->fill([
             'password' => Hash::make($attributes['password'])
         ])->save();
+
 
         $user->tokens()->delete();
 
         return JsonResource::make([
             'message' => 'Password has been changed. Please relogin'
         ]);
+    }
+
+
+    public function logout(Request $request)
+    {
+        $request->user()->currentAccessToken()->delete();
+
+        return [
+            'message'=>"Logout",
+            'data' => 'success'
+        ];
     }
 
 }

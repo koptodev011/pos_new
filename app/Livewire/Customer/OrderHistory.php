@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Mail;
 use App\Mail\BillRequested;
 use Barryvdh\DomPDF\Facade\Pdf;
 
+
 class OrderHistory extends Component
 {
     public function render()

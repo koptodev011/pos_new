@@ -186,6 +186,7 @@ class PaymentController extends Controller
 
 public function paymentDetails()
 {
+   
     try {
         $orderHelper = new OrderHelper();
         $orderData = json_decode($orderHelper->PaymentSummary(), true);

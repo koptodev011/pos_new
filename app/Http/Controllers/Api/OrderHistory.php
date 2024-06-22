@@ -26,19 +26,59 @@ class OrderHistory extends Controller
     }
 
 
-    public function sendEBill($id)
+    public function sendEBill(Request $request)
     {
+      
+        try {
+            $attributes=$request->validate([
+                'id' => ['required'],
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            $errors = $e->validator->errors()->getMessages();
+            return response()->json(['errors' => $errors], 400);
+        }
+        $id = $request->input('id');
+       
         $user = Auth()->user()->email;
+       
         $orderHelper = new OrderHelper();
         $orderSummary = $orderHelper->orderDetails($id);
-
-        dd($orderSummary);
-        Mail::to($user)->send(new BillRequested($orderSummary));
-
+    
+        // Mail::to($user)->send(new BillRequested($orderSummary));
         return response()->json(['message' => 'eBill sent successfully']);
+        dd();
     }
 
+    public function download(Request $request) {
+        
+        try {
+            $attributes=$request->validate([
+                'id' => ['required'],
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            $errors = $e->validator->errors()->getMessages();
+            return response()->json(['errors' => $errors], 400);
+        }
 
+        $id = $request->input('id');
+        $orderHelper=new OrderHelper();
+        $orderData=$orderHelper->BillDetails($id);
+        
+       
+        // $cartHelper = new \App\Helpers\CartHelper();
+        // $tenantUnit = $cartHelper->tenantUnit();
+        // $currency = $tenantUnit->country->getCurrency();
 
+       $data=[
+        'orderData' => $orderData,
+        'type' => 'pdf'
+       ];
+  
+   
+    $pdf = Pdf::loadView('mail.bill', $data);
     
+    return $pdf->download('invoice.pdf');
+      
+    }
+   
 }

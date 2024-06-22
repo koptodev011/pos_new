@@ -122,9 +122,8 @@ class OrderHelper
         ->where('user_id', Auth::user()->id)
         ->where('status', '!=', 'Completed')
         ->first();
-    
     $orderDataArray = json_decode(json_encode($orderData), true);
-    
+   
     $id = 0;
     if (isset($orderDataArray['order_items'])) {
         $outputArray = [];
@@ -406,13 +405,18 @@ $total=$orders['summary']['total'];
     }
 
     public function orderDetails($id) {
-        
+   
         
          $orderData=Order::with('orderItems.orderable.media')->where('user_id',Auth::user()->id)
          ->where('id', $id)->get();
+       
+  
          $orderSummary=[];
+
          
          foreach ($orderData as $order) {
+           
+        
              $summary = [
                  'total' => $order->summary['total'],
                  'sub_total' => $order->summary['sub_total'],
@@ -439,9 +443,56 @@ $total=$orders['summary']['total'];
                  'order' => $order
              ];
          }
+         print_r($orderSummary);
+         dd();
+         
          return $orderSummary;
 
     }
+
+
+    public function BillDetails($id) {
+   
+        
+        $orderData=Order::with('orderItems.orderable.media')->where('user_id',Auth::user()->id)
+        ->where('id', $id)->get();
+      
+ 
+        $orderSummary=[];
+
+        
+        foreach ($orderData as $order) {
+         
+            $summary = [
+                'total' => $order['summary']['total'],
+                'sub_total' =>$order['summary']['sub_total'],
+                'tax' => [
+                    'text' => 'Taxes',
+                    'value' => $order['summary']['tax']['value']
+                ],
+                'discount' => [
+                    'text' => 'Discount',
+                    'value' => $order['summary']['discount']['value']
+                ],
+                'promo' => [
+                   
+                    'text' =>  $order['summary']['promo']['text'],
+                    'value' =>  $order['summary']['promo']['value']
+                ],
+                'tip' => [
+                   'text' =>$order['summary']['tip']['text'],
+                   'value' =>$order['summary']['tip']['value'],
+               ],
+            ];
+            $orderSummary[]=[
+                'summary' => $summary,
+                'order' => $order
+            ];
+        }
+       return $orderSummary;
+
+   }
+
 
 
     // public function loyaltyPointsDetails($tenantUnitID){
@@ -664,6 +715,7 @@ $total=$orders['summary']['total'];
         }
             
     }
+
 
 
 
